@@ -1,0 +1,6 @@
+....................................................................s... [ 64%]
+.......................................                                  [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_mellea_integration.py:13: Install .[mellea,dev] to test the real bridge.
+SKIPPED [1] tests/test_live_jev.py:9: Requires TYPESAFE_API_KEY and explicit RUN_LIVE_JEV=1 (billable).
+110 passed, 2 skipped in 0.14s

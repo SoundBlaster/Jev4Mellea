@@ -16,12 +16,14 @@ integration or as an evaluation of model quality.
 Python 3.11 or newer. From the unpacked project root:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[dev]'
-python examples/offline_demo.py
-python -m pytest -q
+make install
+make demo
+make test
 ```
+
+The Makefile contains the regular install, test, demo, integration, and opt-in
+live-check commands. Run `make help` for the full list. Set `PYTHON=python3.11`
+or another Python version >=3.11 when `python3.13` is unavailable.
 
 The offline example uses the real HTTPX client and HTTP contract serialization,
 but replaces the network with `MockTransport`. The values `0.98`, `0.02`, and
@@ -90,7 +92,7 @@ it may end up in shell history or the process list.
 ## Connect to Mellea
 
 ```bash
-python -m pip install -e '.[mellea,dev]'
+make install
 ```
 
 The package targets **Mellea 0.7.0**. The integration uses its public

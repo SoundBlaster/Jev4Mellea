@@ -1,10 +1,18 @@
 """A tri-state semantic verifier and a lazy-imported Mellea 0.7 bridge."""
 from __future__ import annotations
 
+import math
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol, Sequence
 
-from .client import ChoiceResult, NoulResult, _choice_criteria, probability
+from .client import (
+    ChoiceResult,
+    NoulResult,
+    ScoreResult,
+    _choice_criteria,
+    _score_criteria,
+    probability,
+)
 
 if TYPE_CHECKING:
     from mellea.core import Context, Requirement
@@ -24,6 +32,16 @@ class ChoiceClient(Protocol):
         question: str,
         criteria: dict[str, str | None],
     ) -> ChoiceResult: ...
+
+
+class ScoreClient(Protocol):
+    def score(
+        self,
+        *,
+        state: dict[str, Any],
+        question: str,
+        criteria: Sequence[str],
+    ) -> ScoreResult: ...
 
 
 @dataclass(frozen=True)
@@ -241,6 +259,128 @@ class JevClassifier:
             validation_fn=validate,
             check_only=check_only,
         )
+
+
+class JevScorer:
+    """Rate candidate text against an ordered TypeSafe Score rubric."""
+
+    def __init__(
+        self,
+        client: ScoreClient,
+        question: str,
+        *,
+        criteria: Sequence[str],
+    ) -> None:
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question must be a nonempty string.")
+        self.client = client
+        self.question = question
+        self.criteria = _score_criteria(criteria)
+
+    def evaluate(
+        self,
+        candidate: str,
+        *,
+        reference: str | None = None,
+    ) -> ScoreResult:
+        """Return the fractional position, distribution, and confidence."""
+        if not isinstance(candidate, str):
+            raise TypeError("Only textual candidates are supported.")
+        if not candidate.strip():
+            raise ValueError("candidate must be nonempty text.")
+        if reference is not None and not isinstance(reference, str):
+            raise TypeError("reference must be text or None.")
+        state: dict[str, Any] = {"candidate": candidate}
+        if reference is not None:
+            state["reference"] = reference
+        result = self.client.score(
+            state=state,
+            question=self.question,
+            criteria=self.criteria,
+        )
+        if len(result.probabilities) != len(self.criteria):
+            raise ValueError("Jev returned a score distribution with unexpected levels.")
+        return result
+
+    def as_requirement(
+        self,
+        *,
+        minimum_score: float | None = None,
+        maximum_score: float | None = None,
+        minimum_confidence: float | None = None,
+        reference: str | None = None,
+        repair_hint: str | None = None,
+        check_only: bool = False,
+    ) -> Requirement:
+        """Map a numeric score policy to Mellea's boolean Requirement contract."""
+        maximum_possible = len(self.criteria) - 1
+
+        def score_bound(value: float | None, name: str) -> float | None:
+            if value is None:
+                return None
+            if type(value) not in (int, float) or not math.isfinite(value):
+                raise ValueError(f"{name} must be a finite number.")
+            if not 0 <= value <= maximum_possible:
+                raise ValueError(f"{name} must be in [0, {maximum_possible}].")
+            return float(value)
+
+        minimum = score_bound(minimum_score, "minimum_score")
+        maximum = score_bound(maximum_score, "maximum_score")
+        if minimum is None and maximum is None:
+            raise ValueError("Set minimum_score, maximum_score, or both.")
+        if minimum is not None and maximum is not None and minimum > maximum:
+            raise ValueError("minimum_score must not exceed maximum_score.")
+        if minimum_confidence is not None:
+            minimum_confidence = probability(minimum_confidence)
+        if reference is not None and not isinstance(reference, str):
+            raise TypeError("reference must be text or None.")
+        if repair_hint is not None and not isinstance(repair_hint, str):
+            raise TypeError("repair_hint must be text or None.")
+
+        if minimum is not None and maximum is not None:
+            policy = f"between {minimum:g} and {maximum:g}"
+        elif minimum is not None:
+            policy = f"at least {minimum:g}"
+        else:
+            policy = f"at most {maximum:g}"
+        description = f"The candidate's score for {self.question!r} is {policy}."
+
+        from mellea.core import Requirement, ValidationResult
+
+        def validate(ctx: Context) -> ValidationResult:
+            output = ctx.last_output()
+            candidate = None if output is None else output.value
+            if candidate is None or (isinstance(candidate, str) and not candidate.strip()):
+                return ValidationResult(
+                    False, reason="No nonempty text to score; produce a text answer."
+                )
+            result = self.evaluate(candidate, reference=reference)
+            meets_range = (minimum is None or result.score >= minimum) and (
+                maximum is None or result.score <= maximum
+            )
+            meets_confidence = (
+                minimum_confidence is None or result.confidence >= minimum_confidence
+            )
+            accepted = meets_range and meets_confidence
+            if accepted:
+                reason = (
+                    f"Jev score={result.score:.6f} (confidence={result.confidence:.6f}) "
+                    f"meets the configured range {policy}."
+                )
+            elif not meets_range:
+                reason = repair_hint or (
+                    f"Jev score={result.score:.6f} is outside the configured range "
+                    f"{policy}. Revise the candidate to meet the requirement."
+                )
+            else:
+                reason = repair_hint or (
+                    f"Jev confidence {result.confidence:.6f} is below the configured "
+                    f"minimum {minimum_confidence:.6f}. Revise the candidate to make "
+                    "its score easier to assess."
+                )
+            return ValidationResult(accepted, reason=reason, score=result.score)
+
+        return Requirement(description, validation_fn=validate, check_only=check_only)
 
 
 def accepted_text(result: SamplingResult) -> str:

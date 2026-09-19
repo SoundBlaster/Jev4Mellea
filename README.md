@@ -87,6 +87,49 @@ Exit codes: `0` — accepted, `1` — rejected, `2` — uncertain,
 `.env.example` for sample settings. Do not pass sensitive text as CLI arguments:
 it may end up in shell history or the process list.
 
+## Rate against an ordered scale
+
+TypeSafe `Score` evaluates text against ordered level descriptions. Its result
+includes a fractional score, a probability for each level, and confidence. The
+score is a probability-weighted position on the scale, so it can fall between
+levels; it is not a discrete class.
+
+```python
+from mellea_jev import JevClient, JevScorer
+
+levels = [
+    "Cosmetic; no impact to functionality",
+    "Feature is degraded, but a workaround exists",
+    "Blocking issue; no workaround exists",
+]
+
+with JevClient() as jev:
+    scorer = JevScorer(
+        jev,
+        "How severe is the reported issue?",
+        criteria=levels,
+    )
+    result = scorer.evaluate("The export button crashes in Safari.")
+    print(result.score, result.confidence, result.probabilities)
+```
+
+To use a Score as a Mellea `Requirement`, set an inclusive numeric bound. The
+score policy is application logic; the Mellea `ValidationResult` carries the
+Jev numeric score as its optional `score` field.
+
+```python
+requirement = scorer.as_requirement(maximum_score=0.75)
+# Or accept a range:
+requirement = scorer.as_requirement(
+    minimum_score=0.5,
+    maximum_score=1.25,
+    minimum_confidence=0.6,
+)
+```
+
+TypeSafe supports 2–10 ordered levels. The adapter currently accepts string
+level descriptions; structured descriptions are not yet supported.
+
 ## Connect to Mellea
 
 ```bash
@@ -203,12 +246,13 @@ The client can be replaced through the structural `NoulClient` interface.
 
 ## Prototype limits
 
-Only text and one Noul or Choice question per request are supported. Choice
-criteria accept class labels with string descriptions or `None`; Score, question
-batching, streaming, async client, signed receipts, telemetry, and a full S2
-router are not implemented. Each requirement makes its own request on every
-attempt. The order of requirements in the Mellea list **does not guarantee**
-that a cheap check will cancel the other paid checks.
+Only text and one Noul, Choice, or Score question per request are supported.
+Choice criteria accept class labels with string descriptions or `None`; Score
+criteria accept 2–10 ordered string descriptions. Question batching, streaming,
+async client, signed receipts, telemetry, and a full S2 router are not
+implemented. Each requirement makes its own request on every attempt. The order
+of requirements in the Mellea list **does not guarantee** that a cheap check
+will cancel the other paid checks.
 
 The synchronous Mellea 0.7 callback runs inline, so the network request may
 block its event loop. A high-concurrency server needs a separate async variant

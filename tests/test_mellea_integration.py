@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip("mellea", reason="Install .[mellea,dev] to test the real bridge.")
 from mellea.core import Context, Requirement, ValidationResult
 
-from mellea_jev import JevClient, JevVerifier, JevClassifier, ReviewRequired
+from mellea_jev import JevClient, JevVerifier, JevClassifier, JevScorer, ReviewRequired
 
 pytestmark = pytest.mark.integration
 
@@ -66,3 +66,32 @@ def test_real_choice_requirement_validate_hook(choice, expected):
     assert isinstance(result, ValidationResult)
     assert bool(result) is expected
     assert result.score == (0.8 if choice == "billing" else 0.2)
+
+
+@pytest.mark.parametrize("score,expected", [(0.7, True), (1.5, False)])
+def test_real_score_requirement_validate_hook(score, expected):
+    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={
+        "model": "jev-score-integration-fixture",
+        "answers": {"rating": {
+            "type": "score",
+            "score": score,
+            "confidence": 0.8,
+            "probabilities": {"0": 0.5, "1": 0.3, "2": 0.2}
+            if score == 0.7 else {"0": 0.0, "1": 0.5, "2": 0.5},
+            "legend": {"0": "Low", "1": "Medium", "2": "High"},
+        }},
+    }))
+    with JevClient("test", transport=transport) as client:
+        scorer = JevScorer(
+            client,
+            "How severe is the issue?",
+            criteria=["Low", "Medium", "High"],
+        )
+        req = scorer.as_requirement(maximum_score=1.0, minimum_confidence=0.7)
+        context = Mock(spec=Context)
+        context.last_output.return_value = SimpleNamespace(value="The button fails.")
+        result = asyncio.run(req.validate(backend=None, ctx=context))
+    assert isinstance(req, Requirement)
+    assert isinstance(result, ValidationResult)
+    assert bool(result) is expected
+    assert result.score == score

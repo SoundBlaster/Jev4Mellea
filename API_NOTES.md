@@ -1,6 +1,6 @@
 # Проверенные внешние контракты
 
-Дата сверки: **2026-09-17**. Это ссылки на первичные источники, а не запись
+Дата сверки: **2026-09-19**. Это ссылки на первичные источники, а не запись
 удачного live-вызова. Документация сервиса и alias модели могут измениться.
 
 ## TypeSafe
@@ -36,6 +36,14 @@ Authorization: Bearer <API_KEY>
 вероятностей близка к 1. SDK также принимает более структурированные criteria,
 но эта форма пока не поддержана адаптером.
 
+[Score](https://docs.typesafe.ai/primitives/score) принимает упорядоченный
+массив описаний уровней (от 2 до 10) и возвращает дробный `score`,
+`probabilities` для уровней, `confidence` и `legend`. Score — это
+вероятностно-взвешенная позиция на шкале, поэтому результат может быть между
+двумя уровнями. Адаптер принимает строковые описания и проверяет диапазон,
+распределение вероятностей, средневзвешенное значение и соответствие legend
+запрошенной шкале. Структурированные описания уровней пока не поддерживаются.
+
 [Официальный Python SDK](https://docs.typesafe.ai/sdk/python/api/clients/sync/client)
 действительно имеет `TypeSafeClient.system_one(...)`; `jev.decide(...)`
 в предыдущем обсуждении был псевдокодом. Этот маленький пакет использует
@@ -47,6 +55,10 @@ HTTP напрямую и не зависит от версии SDK.
 
 - [Write Custom Verifiers](https://docs.mellea.ai/how-to/write-custom-verifiers):
   `Requirement(description, validation_fn=...)` и `ValidationResult`.
+- [Исходник ValidationResult, тег v0.7.0](https://github.com/generative-computing/mellea/blob/v0.7.0/mellea/core/requirement.py):
+  контракт состоит из bool результата и необязательных `reason`, `score: float`
+  и других метаданных. Jev Score адаптируется к нему как pass/fail по
+  настроенному диапазону; числовой результат Jev передаётся в поле `score`.
 - [Исходник Requirement, тег v0.7.0](https://github.com/generative-computing/mellea/blob/v0.7.0/mellea/core/requirement.py):
   `validate` асинхронна, но переданный callback вызывается синхронно,
   `return self.validation_fn(ctx)`. Поэтому `async def validation_fn`

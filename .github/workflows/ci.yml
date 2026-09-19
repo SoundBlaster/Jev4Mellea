@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install package and test dependencies
-        run: python -m pip install -e ".[dev]"
+        run: python -m pip install -e ".[mellea,dev]"
 
       - name: Run test suite
         run: python -m pytest -q

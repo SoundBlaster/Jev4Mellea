@@ -215,9 +215,20 @@ python -m pytest -q
 # Integration with the real Requirement.validate, without live models.
 python -m pytest -q tests/test_mellea_integration.py
 
+# Optional real Mellea + local Ollama repair flow; Jev HTTP is mocked.
+OLLAMA_MODEL='gemma3n:e2b' RUN_LOCAL_OLLAMA=1 \
+  python -m pytest -q tests/test_mellea_ollama.py
+
 # Explicit opt-in only: sends one potentially billable request.
 RUN_LIVE_JEV=1 python -m pytest -q tests/test_live_jev.py
 ```
+
+The local Ollama integration requires `.[mellea,dev]`, a running Ollama server,
+and the selected model already installed. It does not need a TypeSafe key and
+never calls Jev: a mock HTTP transport rejects the first candidate and accepts
+the repair attempt. The mock checks integration control flow, not Jev's
+semantic judgment. GitHub Actions installs `.[mellea,dev]`, so its full test run
+exercises the real Mellea `Requirement.validate` hook with Jev HTTP mocked.
 
 `test_bridge_contract.py` intentionally uses doubles, as its name indicates. It
 does not replace `test_mellea_integration.py`. The latter tests the real hook,

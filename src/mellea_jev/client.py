@@ -4,13 +4,14 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 import httpx
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 QUESTION_ID = "requirement"
 CHOICE_QUESTION_ID = "classification"
+SCORE_QUESTION_ID = "rating"
 
 
 class JevError(RuntimeError):
@@ -24,7 +25,7 @@ class JevHTTPError(JevError):
 
 
 class JevProtocolError(JevError):
-    """The server response does not satisfy the expected Noul contract."""
+    """The server response does not satisfy the expected TypeSafe contract."""
 
 
 def probability(value: object) -> float:
@@ -77,6 +78,46 @@ class ChoiceResult:
         object.__setattr__(self, "probabilities", probabilities)
 
 
+@dataclass(frozen=True)
+class ScoreResult:
+    score: float
+    confidence: float
+    probabilities: dict[int, float]
+    legend: dict[int, str]
+    model: str
+    request_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if type(self.score) not in (int, float) or not math.isfinite(self.score):
+            raise ValueError("Expected a finite numeric score.")
+        probability(self.confidence)
+        if not isinstance(self.probabilities, dict) or len(self.probabilities) < 2:
+            raise ValueError("Expected a nonempty score probability map.")
+        probabilities = {
+            level: probability(value) for level, value in self.probabilities.items()
+        }
+        if any(type(level) is not int or level < 0 for level in probabilities):
+            raise ValueError("Score levels must be nonnegative integers.")
+        if set(probabilities) != set(range(len(probabilities))):
+            raise ValueError("Score levels must be contiguous and start at zero.")
+        if not 0 <= self.score <= len(probabilities) - 1:
+            raise ValueError("Score must fall within the configured level range.")
+        if not math.isclose(sum(probabilities.values()), 1.0, rel_tol=0.0, abs_tol=1e-3):
+            raise ValueError("Score probabilities must sum to 1.")
+        expected_score = sum(level * value for level, value in probabilities.items())
+        if not math.isclose(float(self.score), expected_score, rel_tol=0.0, abs_tol=0.02):
+            raise ValueError("Score must match the probability-weighted level average.")
+        if not isinstance(self.legend, dict) or set(self.legend) != set(probabilities):
+            raise ValueError("Score legend must describe every configured level.")
+        if any(not isinstance(text, str) or not text.strip() for text in self.legend.values()):
+            raise ValueError("Score legend descriptions must be nonempty strings.")
+        if not isinstance(self.model, str) or not self.model.strip():
+            raise ValueError("Expected a nonempty response model name.")
+        object.__setattr__(self, "score", float(self.score))
+        object.__setattr__(self, "confidence", float(self.confidence))
+        object.__setattr__(self, "probabilities", probabilities)
+
+
 def _choice_criteria(criteria: Mapping[str, str | None]) -> dict[str, str | None]:
     if not isinstance(criteria, Mapping) or not criteria:
         raise ValueError("criteria must be a nonempty mapping of labels to descriptions.")
@@ -94,8 +135,26 @@ def _choice_criteria(criteria: Mapping[str, str | None]) -> dict[str, str | None
     return normalized
 
 
+def _score_criteria(criteria: Sequence[str]) -> list[str]:
+    if isinstance(criteria, (str, bytes)) or not isinstance(criteria, Sequence):
+        raise TypeError("Score criteria must be an ordered sequence of descriptions.")
+    if not 2 <= len(criteria) <= 10:
+        raise ValueError("TypeSafe Score requires between 2 and 10 levels.")
+    normalized = list(criteria)
+    if any(not isinstance(level, str) or not level.strip() for level in normalized):
+        raise ValueError("Score levels must be nonempty descriptions.")
+    return normalized
+
+
+def _score_response_map(value: object, level_count: int) -> dict[int, Any]:
+    expected_keys = {str(level) for level in range(level_count)}
+    if not isinstance(value, dict) or set(value) != expected_keys:
+        raise ValueError("Score response keys must exactly match the configured levels.")
+    return {level: value[str(level)] for level in range(level_count)}
+
+
 class JevClient:
-    """One Noul or Choice question per request. No hidden retries; close with a context manager.
+    """One Noul, Choice, or Score question per request. No hidden retries; close with a context manager.
 
     Only the official HTTPS endpoint is used. ``transport`` is a trusted
     dependency-injection hook for tests, not an untrusted per-request option.
@@ -217,6 +276,64 @@ class JevClient:
             return result
         except (KeyError, TypeError, ValueError, OverflowError):
             raise JevProtocolError("Malformed TypeSafe Choice response; refusing to classify.") from None
+
+    def score(
+        self,
+        *,
+        state: dict[str, Any],
+        question: str,
+        criteria: Sequence[str],
+    ) -> ScoreResult:
+        """Rate the state against ordered levels and return the full distribution."""
+        if not isinstance(state, dict):
+            raise TypeError("state must be a JSON-serializable dictionary.")
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question must be a nonempty string.")
+        levels = _score_criteria(criteria)
+        try:
+            response = self._http.post(
+                ENDPOINT,
+                json={
+                    "model": self.model,
+                    "state": state,
+                    "questions": {
+                        SCORE_QUESTION_ID: {
+                            "type": "score",
+                            "instructions": question,
+                            "criteria": levels,
+                        }
+                    },
+                },
+            )
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            raise JevHTTPError(exc.response.status_code) from None
+        except httpx.RequestError:
+            raise JevError("TypeSafe transport failed; validation did not complete.") from None
+        try:
+            data = response.json()
+            if not isinstance(data, dict):
+                raise ValueError
+            answer = data["answers"][SCORE_QUESTION_ID]
+            if not isinstance(answer, dict) or answer.get("type") != "score":
+                raise ValueError
+            probabilities = _score_response_map(answer["probabilities"], len(levels))
+            legend = _score_response_map(answer["legend"], len(levels))
+            result = ScoreResult(
+                score=answer["score"],
+                confidence=probability(answer["confidence"]),
+                probabilities=probabilities,
+                legend=legend,
+                model=data["model"],
+                request_id=response.headers.get("x-typesafe-request-id"),
+            )
+            if len(result.probabilities) != len(levels) or result.legend != dict(enumerate(levels)):
+                raise ValueError
+            if not 0 <= result.score <= len(levels) - 1:
+                raise ValueError
+            return result
+        except (KeyError, TypeError, ValueError, OverflowError):
+            raise JevProtocolError("Malformed TypeSafe Score response; refusing to score.") from None
 
     def close(self) -> None:
         self._http.close()

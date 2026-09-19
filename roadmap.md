@@ -13,10 +13,13 @@ projects. A listed feature is not a release commitment.
 - Exercise the real Mellea `Requirement.validate` contract with mocked Jev HTTP
   responses; keep live Jev checks opt-in.
 
-## Next — Complete the primitive and request model
+## In progress — Score support
 
 - Add Jev `Score` support for ordered scales, with response validation and a
-  Mellea requirement bridge where the primitive semantics support it.
+  Mellea `Requirement` bridge for configurable inclusive score bounds.
+
+## Next — Complete the request model
+
 - Support multiple named questions in one TypeSafe request, including mixed
   Noul and Choice questions; preserve per-question results and errors.
 - Accept the structured Choice criteria forms supported by the TypeSafe API.

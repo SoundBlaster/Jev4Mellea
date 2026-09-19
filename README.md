@@ -37,7 +37,7 @@ The request may incur a charge. Do not share the key or put it in source code.
 
 ```bash
 export TYPESAFE_API_KEY='your-key'
-python examples/live_check.py \
+.venv/bin/python examples/live_check.py \
   --candidate 'Hello! Thank you for your message.' \
   --requirement 'The candidate contains a polite greeting.'
 ```
@@ -45,7 +45,7 @@ python examples/live_check.py \
 To check against a reference source:
 
 ```bash
-python examples/live_check.py \
+.venv/bin/python examples/live_check.py \
   --candidate 'The museum opens at 10:00.' \
   --requirement 'The museum opening time in the candidate matches the reference.' \
   --reference-file ./source.txt
@@ -135,7 +135,7 @@ already-running Ollama instance with a model already loaded:
 ```bash
 export TYPESAFE_API_KEY='your-key'
 export OLLAMA_MODEL='your-installed-model-tag'
-python examples/mellea_ollama.py
+.venv/bin/python examples/mellea_ollama.py
 ```
 
 This example makes live Jev checks and may incur charges. The choice of
@@ -246,17 +246,17 @@ configuration.
 
 ```bash
 # Local tests; with Mellea installed, its real hook test is included.
-python -m pytest -q
+.venv/bin/python -m pytest -q
 
 # Integration with the real Requirement.validate, without live models.
-python -m pytest -q tests/test_mellea_integration.py
+.venv/bin/python -m pytest -q tests/test_mellea_integration.py
 
 # Optional real Mellea + local Ollama repair flow; Jev HTTP is mocked.
 OLLAMA_MODEL='gemma3n:e2b' RUN_LOCAL_OLLAMA=1 \
-  python -m pytest -q tests/test_mellea_ollama.py
+  .venv/bin/python -m pytest -q tests/test_mellea_ollama.py
 
 # Explicit opt-in only: sends potentially billable Jev requests.
-RUN_LIVE_JEV=1 python -m pytest -q tests/test_live_jev.py
+RUN_LIVE_JEV=1 .venv/bin/python -m pytest -q tests/test_live_jev.py
 ```
 
 The local Ollama integration requires `.[mellea,dev]`, a running Ollama server,

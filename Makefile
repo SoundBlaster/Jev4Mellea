@@ -17,7 +17,7 @@ help: ## Show the available development commands
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
-	  'diff-check       Check tracked changes for whitespace errors' \
+	  'diff-check       Check staged and unstaged changes for whitespace errors' \
 	  'clean            Remove the virtualenv and generated Python/test build files'
 
 install: $(VENV)/.installed ## Create the virtual environment and install dependencies
@@ -55,8 +55,8 @@ mellea-ollama: $(VENV)/.installed ## Run the Mellea + Ollama example; Jev reques
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	OLLAMA_MODEL='$(OLLAMA_MODEL)' $(PY) examples/mellea_ollama.py
 
-diff-check: ## Check tracked changes for whitespace errors
-	git diff --check
+diff-check: ## Check staged and unstaged changes for whitespace errors
+	git diff --check HEAD
 
 clean: ## Remove generated local files
 	rm -rf $(VENV) .pytest_cache build dist src/*.egg-info

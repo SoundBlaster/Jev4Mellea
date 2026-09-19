@@ -49,6 +49,39 @@ python examples/live_check.py \
   --reference-file ./source.txt
 ```
 
+## Classify into a fixed set of categories
+
+TypeSafe `Choice` selects one category from the supplied criteria and returns
+the selected label, its confidence, and probabilities for all labels. This is
+separate from the yes/no `Noul` verifier above.
+
+```python
+from mellea_jev import JevClient, JevClassifier
+
+criteria = {
+    "billing": "Payments, invoices, and refunds",
+    "technical": "Product errors and usage problems",
+    "other": "Anything outside the other categories",
+}
+
+with JevClient() as jev:
+    classifier = JevClassifier(
+        jev,
+        "Choose the best category for this support message.",
+        criteria=criteria,
+    )
+    result = classifier.classify("I was charged twice for my subscription.")
+    print(result.choice, result.confidence, result.probabilities)
+```
+
+Each criteria key is a class label; its string value describes that class.
+Descriptions can also be `None` when the label is self-explanatory. TypeSafe
+allows up to 255 classes per Choice question. To require a generated Mellea
+candidate to fit a particular class, use
+`classifier.as_requirement("billing", minimum_confidence=0.75)` in the
+`requirements` list. The optional confidence floor is application policy, not
+an accuracy guarantee.
+
 Exit codes: `0` — accepted, `1` — rejected, `2` — uncertain,
 `3` — validation did not complete. `.env` is not loaded automatically; see
 `.env.example` for sample settings. Do not pass sensitive text as CLI arguments:
@@ -170,11 +203,12 @@ The client can be replaced through the structural `NoulClient` interface.
 
 ## Prototype limits
 
-Only text and one Noul check are supported. There is no Choice/Score,
-question batching, streaming, async client, signed receipts, telemetry, or full
-S2 router. Each requirement makes its own request on every attempt. The order of
-requirements in the Mellea list **does not guarantee** that a cheap check will
-cancel the other paid checks.
+Only text and one Noul or Choice question per request are supported. Choice
+criteria accept class labels with string descriptions or `None`; Score, question
+batching, streaming, async client, signed receipts, telemetry, and a full S2
+router are not implemented. Each requirement makes its own request on every
+attempt. The order of requirements in the Mellea list **does not guarantee**
+that a cheap check will cancel the other paid checks.
 
 The synchronous Mellea 0.7 callback runs inline, so the network request may
 block its event loop. A high-concurrency server needs a separate async variant
@@ -219,7 +253,7 @@ python -m pytest -q tests/test_mellea_integration.py
 OLLAMA_MODEL='gemma3n:e2b' RUN_LOCAL_OLLAMA=1 \
   python -m pytest -q tests/test_mellea_ollama.py
 
-# Explicit opt-in only: sends one potentially billable request.
+# Explicit opt-in only: sends potentially billable Jev requests.
 RUN_LIVE_JEV=1 python -m pytest -q tests/test_live_jev.py
 ```
 

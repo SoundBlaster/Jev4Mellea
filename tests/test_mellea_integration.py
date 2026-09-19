@@ -13,7 +13,7 @@ import pytest
 pytest.importorskip("mellea", reason="Install .[mellea,dev] to test the real bridge.")
 from mellea.core import Context, Requirement, ValidationResult
 
-from mellea_jev import JevClient, JevVerifier, ReviewRequired
+from mellea_jev import JevClient, JevVerifier, JevClassifier, ReviewRequired
 
 pytestmark = pytest.mark.integration
 
@@ -38,3 +38,31 @@ def test_real_requirement_validate_hook(p, expected):
             assert isinstance(result, ValidationResult)
             assert bool(result) is expected
             assert result.score == p
+
+
+@pytest.mark.parametrize("choice,expected", [("billing", True), ("technical", False)])
+def test_real_choice_requirement_validate_hook(choice, expected):
+    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={
+        "model": "jev-choice-integration-fixture",
+        "answers": {"classification": {
+            "type": "choice",
+            "choice": choice,
+            "confidence": 0.8,
+            "probabilities": {"billing": 0.8, "technical": 0.2}
+            if choice == "billing" else {"billing": 0.2, "technical": 0.8},
+        }},
+    }))
+    with JevClient("test", transport=transport) as client:
+        classifier = JevClassifier(
+            client,
+            "Classify the customer request.",
+            criteria={"billing": "Payments and refunds", "technical": "Product errors"},
+        )
+        req = classifier.as_requirement("billing")
+        ctx = Mock(spec=Context)
+        ctx.last_output.return_value = SimpleNamespace(value="I was charged twice.")
+        result = asyncio.run(req.validate(backend=None, ctx=ctx))
+    assert isinstance(req, Requirement)
+    assert isinstance(result, ValidationResult)
+    assert bool(result) is expected
+    assert result.score == (0.8 if choice == "billing" else 0.2)

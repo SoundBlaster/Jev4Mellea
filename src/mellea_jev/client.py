@@ -146,6 +146,13 @@ def _score_criteria(criteria: Sequence[str]) -> list[str]:
     return normalized
 
 
+def _score_response_map(value: object, level_count: int) -> dict[int, Any]:
+    expected_keys = {str(level) for level in range(level_count)}
+    if not isinstance(value, dict) or set(value) != expected_keys:
+        raise ValueError("Score response keys must exactly match the configured levels.")
+    return {level: value[str(level)] for level in range(level_count)}
+
+
 class JevClient:
     """One Noul, Choice, or Score question per request. No hidden retries; close with a context manager.
 
@@ -310,10 +317,8 @@ class JevClient:
             answer = data["answers"][SCORE_QUESTION_ID]
             if not isinstance(answer, dict) or answer.get("type") != "score":
                 raise ValueError
-            if not isinstance(answer["probabilities"], dict) or not isinstance(answer["legend"], dict):
-                raise ValueError
-            probabilities = {int(level): value for level, value in answer["probabilities"].items()}
-            legend = {int(level): value for level, value in answer["legend"].items()}
+            probabilities = _score_response_map(answer["probabilities"], len(levels))
+            legend = _score_response_map(answer["legend"], len(levels))
             result = ScoreResult(
                 score=answer["score"],
                 confidence=probability(answer["confidence"]),

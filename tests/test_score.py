@@ -88,3 +88,19 @@ def test_malformed_score_response_fails_closed(body):
     with JevClient("test-key", transport=transport) as client:
         with pytest.raises(JevProtocolError):
             client.score(state={"candidate": "text"}, question="Rate.", criteria=LEVELS)
+
+
+def test_integer_equivalent_wire_keys_fail_before_conversion():
+    body = score_wire(
+        score=0.5,
+        probabilities={"0": 2, "00": 0.5, "1": 0.5},
+        legend={"0": "Low", "1": "High"},
+    )
+    transport = httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    with JevClient("test-key", transport=transport) as client:
+        with pytest.raises(JevProtocolError):
+            client.score(
+                state={"candidate": "text"},
+                question="Rate.",
+                criteria=["Low", "High"],
+            )

@@ -53,3 +53,35 @@ Mellea. Это НЕ доказательство выполнения насто
 и пустые строки; плюс небольшой `__init__.py`. Остальное — примеры, тесты,
 документация и настройки пакета. Архив не содержит ключей, зависимостей,
 виртуального окружения, байткода или сборочных кэшей.
+
+## Повторная проверка — 19 сентября 2026 года
+
+В отдельном временном окружении Python 3.13.15 установлены собственный пакет,
+`mellea==0.7.0` и `dev` dependencies. С настоящей Mellea выполнено:
+
+- `python -m pytest -q` — **113 passed, 2 skipped**; пропущены live Jev test
+  (ключ и явный opt-in) и локальный Ollama test (явный opt-in).
+- Настоящий локальный цикл `Mellea → Ollama (gemma3n:e2b) → RepairTemplateStrategy`
+  выполнен с Jev API через `httpx.MockTransport`: первый ответ mock отклонил,
+  повторную генерацию принял, `accepted_text()` вернул проверенный результат.
+- Проверено, что в mock HTTP передан reference. Запросов к TypeSafe не было.
+- `RUN_LOCAL_OLLAMA=1 OLLAMA_MODEL=gemma3n:e2b python -m pytest -q
+  tests/test_mellea_ollama.py` — **1 passed**.
+
+Для повторения добавлен opt-in тест `tests/test_mellea_ollama.py`, запускаемый с
+`RUN_LOCAL_OLLAMA=1` и `OLLAMA_MODEL`. Он не входит в обычный CI, поскольку там
+нет локального Ollama сервера и модели. Этот тест подтверждает интеграционный
+контрольный поток, но не качество Jev: его оценки заданы фикстурой.
+
+## Choice-классификатор — повторная проверка, 19 сентября 2026 года
+
+- `python -m pytest -q` — **133 passed, 3 skipped** в окружении Python 3.13.15
+  с Mellea 0.7.0. Пропущены два opt-in live Jev smoke tests и локальный Ollama
+  test без соответствующих флагов.
+- Mock HTTP тесты проверяют сериализацию TypeSafe Choice criteria, разбор
+  выбранного класса/confidence/probabilities и отказ на неизвестных классах,
+  неполных или некорректных вероятностях.
+- Настоящий Mellea `Requirement.validate` проверен с mock Choice ответами для
+  принятого и отклонённого целевого класса.
+- Локальный Mellea + Ollama repair test повторно прошёл: **1 passed**. Живых
+  запросов к TypeSafe не выполнялось.

@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, Literal, Protocol
 
-from .client import NoulResult, probability
+from .client import ChoiceResult, NoulResult, _choice_criteria, probability
 
 if TYPE_CHECKING:
     from mellea.core import Context, Requirement
@@ -14,6 +14,16 @@ if TYPE_CHECKING:
 
 class NoulClient(Protocol):
     def noul(self, *, state: dict[str, Any], question: str) -> NoulResult: ...
+
+
+class ChoiceClient(Protocol):
+    def choice(
+        self,
+        *,
+        state: dict[str, Any],
+        question: str,
+        criteria: dict[str, str | None],
+    ) -> ChoiceResult: ...
 
 
 @dataclass(frozen=True)
@@ -127,6 +137,109 @@ class JevVerifier:
 
         return Requirement(
             self.description, validation_fn=validate, check_only=check_only
+        )
+
+
+class JevClassifier:
+    """Classify text into a configured TypeSafe Choice option."""
+
+    def __init__(
+        self,
+        client: ChoiceClient,
+        question: str,
+        *,
+        criteria: dict[str, str | None],
+    ) -> None:
+        if not isinstance(question, str) or not question.strip():
+            raise ValueError("question must be a nonempty string.")
+        self.client = client
+        self.question = question
+        self.criteria = _choice_criteria(criteria)
+
+    def classify(
+        self,
+        candidate: str,
+        *,
+        reference: str | None = None,
+    ) -> ChoiceResult:
+        if not isinstance(candidate, str):
+            raise TypeError("Only textual candidates are supported.")
+        if not candidate.strip():
+            raise ValueError("candidate must be nonempty text.")
+        if reference is not None and not isinstance(reference, str):
+            raise TypeError("reference must be text or None.")
+        state: dict[str, Any] = {"candidate": candidate}
+        if reference is not None:
+            state["reference"] = reference
+        result = self.client.choice(
+            state=state,
+            question=self.question,
+            criteria=self.criteria,
+        )
+        if result.choice not in self.criteria:
+            raise ValueError("Jev returned a class outside the configured criteria.")
+        return result
+
+    def as_requirement(
+        self,
+        expected_choice: str,
+        *,
+        reference: str | None = None,
+        minimum_confidence: float | None = None,
+        repair_hint: str | None = None,
+        check_only: bool = False,
+    ) -> Requirement:
+        """Validate that a Mellea candidate is assigned to the expected class."""
+        from mellea.core import Requirement, ValidationResult
+
+        if not isinstance(expected_choice, str) or not expected_choice.strip():
+            raise ValueError("expected_choice must be a nonempty configured class label.")
+        if expected_choice not in self.criteria:
+            raise ValueError("expected_choice must be one of the configured criteria.")
+        if reference is not None and not isinstance(reference, str):
+            raise TypeError("reference must be text or None.")
+        if minimum_confidence is not None:
+            minimum_confidence = probability(minimum_confidence)
+        if repair_hint is not None and not isinstance(repair_hint, str):
+            raise TypeError("repair_hint must be text or None.")
+
+        def validate(ctx: Context) -> ValidationResult:
+            output = ctx.last_output()
+            candidate = None if output is None else output.value
+            if candidate is None or (isinstance(candidate, str) and not candidate.strip()):
+                return ValidationResult(
+                    False, reason="No nonempty text to classify; produce a text answer."
+                )
+            result = self.classify(candidate, reference=reference)
+            expected_probability = result.probabilities[expected_choice]
+            accepted = result.choice == expected_choice and (
+                minimum_confidence is None or result.confidence >= minimum_confidence
+            )
+            if accepted:
+                reason = (
+                    f"Jev classified the candidate as {expected_choice!r} "
+                    f"(confidence={result.confidence:.6f})."
+                )
+            elif result.choice == expected_choice:
+                reason = repair_hint or (
+                    f"Jev selected the expected class {expected_choice!r}, but confidence "
+                    f"{result.confidence:.6f} is below the configured minimum "
+                    f"{minimum_confidence:.6f}. Revise the candidate to make its class clearer."
+                )
+            else:
+                reason = repair_hint or (
+                    f"Expected class {expected_choice!r}; Jev selected {result.choice!r} "
+                    f"(confidence={result.confidence:.6f}). Revise the candidate "
+                    f"to fit class {expected_choice!r}."
+                )
+            return ValidationResult(
+                accepted, reason=reason, score=expected_probability
+            )
+
+        return Requirement(
+            f"The candidate belongs to class {expected_choice}.",
+            validation_fn=validate,
+            check_only=check_only,
         )
 
 

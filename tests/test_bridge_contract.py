@@ -8,7 +8,9 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
-from mellea_jev import JevError, JevVerifier, NoulResult, ReviewRequired
+from mellea_jev import (
+    ChoiceResult, JevClassifier, JevError, JevVerifier, NoulResult, ReviewRequired,
+)
 
 
 @pytest.fixture
@@ -81,3 +83,66 @@ def test_api_error_propagates_through_callback(contract_module):
     requirement = JevVerifier(BrokenClient(), "Be polite.").as_requirement()
     with pytest.raises(JevError):
         requirement.validation_fn(context("Hello"))
+
+
+def test_choice_requirement_accepts_expected_class(contract_module):
+    class ClassifierClient:
+        def choice(self, **_):
+            return ChoiceResult(
+                "billing", 0.8,
+                {"billing": 0.8, "technical": 0.2},
+                "jev-contract-double",
+            )
+
+    classifier = JevClassifier(
+        ClassifierClient(), "Choose a category.",
+        criteria={"billing": "Payment issues", "technical": "Product issues"},
+    )
+    requirement = classifier.as_requirement("billing", minimum_confidence=0.7)
+    result = requirement.validation_fn(context("I was charged twice."))
+    assert isinstance(requirement, contract_module.Requirement)
+    assert isinstance(result, contract_module.ValidationResult)
+    assert bool(result)
+    assert result.score == 0.8
+
+
+def test_choice_requirement_fails_for_other_class_and_bad_expected_class(contract_module):
+    class ClassifierClient:
+        def choice(self, **_):
+            return ChoiceResult(
+                "technical", 0.8,
+                {"billing": 0.2, "technical": 0.8},
+                "jev-contract-double",
+            )
+
+    classifier = JevClassifier(
+        ClassifierClient(), "Choose a category.",
+        criteria={"billing": "Payment issues", "technical": "Product issues"},
+    )
+    with pytest.raises(ValueError, match="configured criteria"):
+        classifier.as_requirement("other")
+    result = classifier.as_requirement("billing").validation_fn(context("Broken app."))
+    assert not result
+    assert result.score == 0.2
+    assert "Expected class 'billing'" in result.reason
+
+
+def test_choice_requirement_can_reject_low_confidence(contract_module):
+    class ClassifierClient:
+        def choice(self, **_):
+            return ChoiceResult(
+                "billing", 0.6,
+                {"billing": 0.6, "technical": 0.4},
+                "jev-contract-double",
+            )
+
+    classifier = JevClassifier(
+        ClassifierClient(), "Choose a category.",
+        criteria={"billing": "Payment issues", "technical": "Product issues"},
+    )
+    result = classifier.as_requirement("billing", minimum_confidence=0.8).validation_fn(
+        context("I might have been charged twice.")
+    )
+    assert not result
+    assert result.score == 0.6
+    assert "below the configured minimum" in result.reason

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mellea-jev-adapter"
 version = "0.1.0"
-description = "Unofficial, fail-closed TypeSafe Jev Noul verifier for Mellea"
+description = "Unofficial TypeSafe Jev Noul verifier and Choice classifier for Mellea"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
@@ -27,5 +27,5 @@ pythonpath = ["src"]
 addopts = "-ra"
 markers = [
     "integration: requires the real Mellea distribution, but no model server",
-    "live: explicit opt-in; sends one potentially billable request to TypeSafe",
+    "live: explicit opt-in; sends potentially billable requests to TypeSafe",
 ]

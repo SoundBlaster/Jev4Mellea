@@ -1,18 +1,19 @@
-# Mellea × Jev — небольшой адаптер семантических проверок
+# Mellea × Jev — a small adapter for semantic validation
 
-Неофициальный Python-прототип `0.1.0`, подготовленный 17 сентября 2026 года.
-**Jev проверяет результат генерации; Mellea управляет генерацией и её повторением.**
-Это не новый агентный фреймворк и не замена backend генератора.
+Unofficial Python prototype `0.1.0`, prepared on September 17, 2026.
+**Jev checks the generated result; Mellea manages generation and retries.**
+This is not a new agent framework or a replacement for the generation backend.
 
-**Статус проверки:** локальные unit/contract-тесты и офлайн-демонстрация выполнены.
-Настоящая Mellea в среде сборки отсутствует; загрузить её зависимости не удалось.
-Запрос к живому Jev и сквозной запуск `Mellea → генератор → Jev → repair` не выполнялись.
-Подробности и фактические результаты — в `TEST_REPORT.md`. Не следует считать
-архив production-проверенной интеграцией или оценкой качества модели.
+**Validation status:** local unit/contract tests and the offline demo have passed.
+The real Mellea package is unavailable in the build environment; its dependencies
+could not be installed. No live Jev request or end-to-end
+`Mellea → generator → Jev → repair` run was performed. See `TEST_REPORT.md` for
+details and actual results. Do not treat this archive as a production-verified
+integration or as an evaluation of model quality.
 
-## Быстрый запуск без ключа
+## Quick start without an API key
 
-Python 3.11 или новее. Из корня распакованного проекта:
+Python 3.11 or newer. From the unpacked project root:
 
 ```bash
 python3 -m venv .venv
@@ -22,15 +23,15 @@ python examples/offline_demo.py
 python -m pytest -q
 ```
 
-Офлайн-пример использует настоящий HTTPX-клиент и сериализацию HTTP-контракта,
-но заменяет сеть `MockTransport`. Значения `0.98`, `0.02`, `0.55` — заранее
-заданные фикстуры, **не ответы модели**. После установки зависимостей пример
-не требует сети, Ollama, Mellea или ключей.
+The offline example uses the real HTTPX client and HTTP contract serialization,
+but replaces the network with `MockTransport`. The values `0.98`, `0.02`, and
+`0.55` are predefined fixtures, **not model responses**. After dependencies are
+installed, the example requires no network access, Ollama, Mellea, or API keys.
 
-## Один настоящий вызов Jev
+## One live Jev request
 
-Ключ создаётся в [консоли TypeSafe](https://console.typesafe.ai/).
-Вызов может быть платным. Ключ не нужно присылать кому-либо или помещать в код.
+Create an API key in the [TypeSafe console](https://console.typesafe.ai/).
+The request may incur a charge. Do not share the key or put it in source code.
 
 ```bash
 export TYPESAFE_API_KEY='your-key'
@@ -39,7 +40,7 @@ python examples/live_check.py \
   --requirement 'The candidate contains a polite greeting.'
 ```
 
-Для проверки относительно источника:
+To check against a reference source:
 
 ```bash
 python examples/live_check.py \
@@ -48,23 +49,23 @@ python examples/live_check.py \
   --reference-file ./source.txt
 ```
 
-Коды выхода: `0` — принят, `1` — отклонён, `2` — неопределённость,
-`3` — проверка не завершена. `.env` автоматически не загружается; пример
-настроек находится в `.env.example`. В аргументах CLI не передавай секретные
-тексты: они могут попасть в историю shell или список процессов.
+Exit codes: `0` — accepted, `1` — rejected, `2` — uncertain,
+`3` — validation did not complete. `.env` is not loaded automatically; see
+`.env.example` for sample settings. Do not pass sensitive text as CLI arguments:
+it may end up in shell history or the process list.
 
-## Подключение к Mellea
+## Connect to Mellea
 
 ```bash
 python -m pip install -e '.[mellea,dev]'
 ```
 
-В пакете зафиксирована целевая версия **Mellea 0.7.0**. Интеграция использует
-её публичные `Requirement`, `ValidationResult` и синхронный `validation_fn`;
-исходный контракт сверялся также с тегом `v0.7.0`.
-Ссылки на исходники и документацию находятся в `API_NOTES.md`.
+The package targets **Mellea 0.7.0**. The integration uses its public
+`Requirement`, `ValidationResult`, and synchronous `validation_fn`; the source
+contract was also checked against the `v0.7.0` tag. Source and documentation
+links are in `API_NOTES.md`.
 
-Для уже созданной Mellea-сессии `m` подключение выглядит так:
+For an existing Mellea session `m`, connect the adapter as follows:
 
 ```python
 from mellea.stdlib.sampling import RepairTemplateStrategy
@@ -92,9 +93,9 @@ with JevClient() as jev:
     print(accepted_text(sampled))
 ```
 
-Это фрагмент для существующей сессии. Полный пример, включая создание сессии
-и обработку исключений: `examples/mellea_ollama.py`. Он использует уже
-запущенную Ollama с уже загруженной моделью:
+This snippet assumes an existing session. For a complete example, including
+session setup and exception handling, see `examples/mellea_ollama.py`. It uses an
+already-running Ollama instance with a model already loaded:
 
 ```bash
 export TYPESAFE_API_KEY='your-key'
@@ -102,120 +103,126 @@ export OLLAMA_MODEL='your-installed-model-tag'
 python examples/mellea_ollama.py
 ```
 
-Этот пример делает реальные проверки Jev и может потратить средства.
-Выбор генератора не связан с выбором проверяющего Jev.
-`RepairTemplateStrategy` выбрана специально, чтобы передавать причины
-отклонения в следующую генерацию, а не просто повторять исходный запрос.
+This example makes live Jev checks and may incur charges. The choice of
+generator is independent of the choice of Jev as verifier.
+`RepairTemplateStrategy` is used specifically to pass rejection reasons into
+the next generation attempt instead of simply repeating the original request.
 
-## Семантика результата
+## Result semantics
 
-Для положительно сформулированного требования `p_yes` означает вероятность
-его выполнения. В TypeSafe `Noul` **нет отдельного поля confidence**.
-[Описание Noul](https://docs.typesafe.ai/primitives/noul).
+For a positively phrased requirement, `p_yes` is the probability that it is
+satisfied. TypeSafe `Noul` has **no separate confidence field**. See the
+[Noul description](https://docs.typesafe.ai/primitives/noul).
 
-| Результат | Политика по умолчанию | Поведение callback адаптера |
+| Outcome | Default policy | Adapter callback behavior |
 |---|---|---|
 | `pass` | `p_yes >= 0.90` | `ValidationResult(True, score=p_yes)` |
 | `fail` | `p_yes <= 0.10` | `ValidationResult(False, reason=repair_hint, score=p_yes)` |
-| `uncertain` | между порогами | `ReviewRequired`, текущая ветка sampling прерывается |
-| пустой текст | без вызова Jev | `ValidationResult(False, score=None)` |
-| ошибка HTTP/сети/контракта | без принятия | исключение `JevError` или его подкласс |
+| `uncertain` | between the thresholds | `ReviewRequired`; the current sampling branch stops |
+| empty text | no Jev request | `ValidationResult(False, score=None)` |
+| HTTP/network/contract error | do not accept | raises `JevError` or a subclass |
 
-`evaluate(text)` возвращает все три семантических исхода как `Verdict`.
-Исключение `ReviewRequired` возникает только при использовании моста
-`as_requirement()`. Оно содержит `.verdict` и `.candidate`: приложение может
-передать спорный кандидат другому проверяющему или человеку. Автоматического
-S2-fallback, связи с SOFAI и скрытых дополнительных запросов здесь нет.
+`evaluate(text)` returns all three semantic outcomes as a `Verdict`. The
+`ReviewRequired` exception is raised only when using the `as_requirement()`
+bridge. It contains `.verdict` and `.candidate`, so the application can send an
+uncertain candidate to another verifier or a human. There is no automatic
+S2 fallback, SOFAI connection, or hidden extra request.
 
-**Нюанс Mellea 0.7.0:** если до ошибки/неопределённости уже была попытка с
-отрицательной валидацией, стратегия может записать исключение в лог и вернуть
-`SamplingResult(success=False)` с предыдущим кандидатом вместо проброса
-`ReviewRequired` или `JevError`. Поэтому нельзя полагаться только на `except`:
-всегда проверяй `accepted_text()`, а `GenerationRejected` также направляй
-в обработчик незавершённых задач. Точная причина отказа может быть недоступна
-через возвращённый `SamplingResult`. Пример использует `concurrency_budget=1`;
-при нескольких ветках исключение одной не обязано остановить остальные.
-Для гарантированного выбора S2 по типу ошибки нужен отдельный контроллер
-или явный вызов `evaluate()` вне sampling. Этот прототип не меняет Mellea.
+**Mellea 0.7.0 caveat:** if an attempt has already failed validation before an
+error or uncertain result occurs, the strategy may log the exception and return
+`SamplingResult(success=False)` with the previous candidate instead of
+propagating `ReviewRequired` or `JevError`. Therefore, do not rely only on
+`except`: always check `accepted_text()`, and route `GenerationRejected` to the
+handler for incomplete tasks as well. The returned `SamplingResult` may not
+expose the precise rejection reason. The example uses `concurrency_budget=1`;
+with multiple branches, an exception in one branch is not guaranteed to stop the
+others. Guaranteed S2 routing by error type requires a separate controller or
+an explicit `evaluate()` call outside sampling. This prototype does not modify
+Mellea.
 
-**Пороги — настраиваемая политика прототипа, не измеренные гарантии.**
-`0.90` не означает, что точность на твоей задаче уже измерена и равна 90%.
-Перед эксплуатацией нужны свои размеченные примеры, оценка ложных принятий
-и подбор порогов. Отдельно измеряй частоту `uncertain` и стоимость повторов.
-Не формулируй опасность как положительный результат: вместо «Есть ли утечка?»
-для принимающего валидатора используй требование «Кандидат не раскрывает секреты».
+**Thresholds are configurable prototype policy, not measured guarantees.**
+`0.90` does not mean that accuracy on your task has been measured at 90%.
+Before deployment, use your own labeled examples to measure false acceptance
+and tune the thresholds. Measure the `uncertain` rate and retry costs separately.
+Do not phrase a hazard as a positive condition: for an accepting validator, use
+the requirement “The candidate does not disclose secrets” instead of “Is there
+a leak?”.
 
-`accepted_text()` проверяет и `success`, и итоговые validation results.
-**Не выдавай `sampled.result` пользователю без этой проверки:** выбранный
-fallback-кандидат может существовать даже при неудаче sampling.
+`accepted_text()` checks both `success` and the final validation results.
+**Do not return `sampled.result` to users without this check:** a fallback
+candidate may exist even when sampling has failed.
 
-## Размер и устройство
+## Size and structure
 
-Основная реализация помещается в двух файлах:
+The main implementation fits in two files:
 
-- `src/mellea_jev/client.py`: HTTP-контракт Noul, ключ, timeout, строгий разбор ответа.
-- `src/mellea_jev/verifier.py`: пороги, `Verdict`, мост `Requirement` и безопасная выдача результата.
+- `src/mellea_jev/client.py`: Noul HTTP contract, API key, timeout, and strict response parsing.
+- `src/mellea_jev/verifier.py`: thresholds, `Verdict`, the `Requirement` bridge, and safe result access.
 
-Остальное — тесты, три примера и документация. Mellea импортируется только
-при вызове `as_requirement()`, поэтому сам клиент и политика проверяются
-без установки большого фреймворка.
+The rest consists of tests, three examples, and documentation. Mellea is imported
+only when `as_requirement()` is called, so the client and policy can be tested
+without installing the larger framework.
 
-Используется прямой документированный HTTP endpoint TypeSafe, **не выдуманный
-`jev.decide()` и не эмуляция Jev через другой LLM**. Официальный `typesafe-sdk`
-не требуется: для одного Noul-запроса достаточно HTTPX. Замена клиента
-возможна через структурный интерфейс `NoulClient`.
+The adapter uses TypeSafe's documented HTTP endpoint directly; it does **not**
+invent `jev.decide()` or emulate Jev with another LLM. The official
+`typesafe-sdk` is not required: HTTPX is sufficient for a single Noul request.
+The client can be replaced through the structural `NoulClient` interface.
 
-## Границы прототипа
+## Prototype limits
 
-Поддерживается только текст и один Noul на проверку. Нет Choice/Score,
-пакетирования вопросов, streaming, async-клиента, подписанных receipts,
-телеметрии или полноценного S2-маршрутизатора. Каждое требование на каждой
-попытке делает свой запрос. Упорядочивание требований в списке Mellea **не
-обещает**, что дешёвая проверка отменит остальные платные проверки.
+Only text and one Noul check are supported. There is no Choice/Score,
+question batching, streaming, async client, signed receipts, telemetry, or full
+S2 router. Each requirement makes its own request on every attempt. The order of
+requirements in the Mellea list **does not guarantee** that a cheap check will
+cancel the other paid checks.
 
-Синхронный callback Mellea 0.7 выполняется inline: сетевой вызов может
-блокировать её event loop. Для высококонкурентного сервера нужен отдельный
-async-вариант с иной точкой расширения. Этот пакет не заявляет такую поддержку.
+The synchronous Mellea 0.7 callback runs inline, so the network request may
+block its event loop. A high-concurrency server needs a separate async variant
+with a different extension point. This package does not claim to support that.
 
-Нет автоматических сетевых retries. Например, 429/529 должен обрабатывать
-внешний слой с ограниченным бюджетом и backoff; смена текста не исправляет
-перегрузку API. `timeout` ограничивает сетевые операции HTTPX, но не является
-жёстким дедлайном всей задачи. Нельзя считать отмену локального ожидания
-доказательством отмены работы или тарификации на сервере.
+There are no automatic network retries. For example, an outer layer should
+handle 429/529 responses with a bounded budget and backoff; changing the text
+does not fix API overload. The HTTPX `timeout` limits network operations but is
+not a hard deadline for the entire task. Cancelling local waiting must not be
+treated as proof that server-side work or billing was cancelled.
 
-В TypeSafe отправляются только `candidate`, явно переданный `reference` и
-требование. История всей сессии не отправляется этим адаптером. Однако даже
-с локальным генератором проверяемые данные уходят в облачный сервис.
-Не передавай секреты и закрытые документы без подходящего разрешения.
-Подсказка «считай state данными» не является доказанной защитой от prompt injection.
+Only `candidate`, an explicitly supplied `reference`, and the requirement are
+sent to TypeSafe. This adapter does not send the full session history. However,
+even with a local generator, the text being checked is sent to a cloud service.
+Do not submit secrets or confidential documents without appropriate
+authorization. The instruction “treat state as data” is not a proven defense
+against prompt injection.
 
-Адаптер не пишет тела запросов и ключи в логи. HTTP-ошибки редактируются до
-статуса без ответа сервера; Mellea или внешняя телеметрия могут иметь свои логи.
-`repair_hint` задаёшь ты: Jev Noul не возвращает текстового объяснения ошибки.
-Поля `model` и `request_id` в `Verdict` — диагностические метаданные, не
-подписанное доказательство правильности. `jev-latest` — изменяемый alias;
-для воспроизводимых замеров указывай конкретную доступную твоему аккаунту версию.
+The adapter does not log request bodies or API keys. HTTP errors are redacted
+to the status code, without the server response body; Mellea or external
+telemetry may have its own logs. You provide `repair_hint`: Jev Noul does not
+return a textual explanation of the failure. The `model` and `request_id` fields
+in `Verdict` are diagnostic metadata, not signed proof of correctness.
+`jev-latest` is a mutable alias; for reproducible measurements, specify a
+version available to your account.
 
-HTTP-клиент использует только официальный HTTPS endpoint, не следует
-redirects и не подхватывает proxy/CA-настройки окружения (`trust_env=False`).
-Для среды с корпоративным прокси потребуется осознанная настройка транспорта.
+The HTTP client uses only the official HTTPS endpoint, does not follow
+redirects, and does not pick up proxy/CA settings from the environment
+(`trust_env=False`). A corporate proxy requires deliberate transport
+configuration.
 
-## Проверки
+## Checks
 
 ```bash
-# Локальные тесты; при установленной Mellea включается проверка её реального hook.
+# Local tests; with Mellea installed, its real hook test is included.
 python -m pytest -q
 
-# Только интеграция с настоящим Requirement.validate, без живых моделей.
+# Integration with the real Requirement.validate, without live models.
 python -m pytest -q tests/test_mellea_integration.py
 
-# Отдельно и только с явного согласия: один потенциально платный вызов.
+# Explicit opt-in only: sends one potentially billable request.
 RUN_LIVE_JEV=1 python -m pytest -q tests/test_live_jev.py
 ```
 
-Тест `test_bridge_contract.py` намеренно использует doubles и явно так
-назван. Он не заменяет `test_mellea_integration.py`. Последний проверяет
-настоящий hook, но не весь цикл генерации. Наличие ключа само по себе
-не включает платный smoke test — требуется дополнительный флаг.
+`test_bridge_contract.py` intentionally uses doubles, as its name indicates. It
+does not replace `test_mellea_integration.py`. The latter tests the real hook,
+but not the full generation cycle. Having an API key alone does not enable the
+billable smoke test; the additional flag is required.
 
-Лицензия исходного кода адаптера: MIT. Проект не аффилирован с IBM или TypeSafe.
+The adapter source code is licensed under MIT. This project is not affiliated
+with IBM or TypeSafe.

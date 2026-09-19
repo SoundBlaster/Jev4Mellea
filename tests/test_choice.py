@@ -64,6 +64,44 @@ def test_choice_serializes_schema_and_parses_selected_class():
     )
 
 
+def test_choice_serializes_structured_json_descriptions():
+    criteria = {
+        "billing": {
+            "what": "Payment issues",
+            "not_for": "Product defects",
+            "examples": ["duplicate charge", {"kind": "refund", "active": True}],
+        },
+        "technical": ["Errors", "Product usage problems"],
+        "other": None,
+    }
+
+    def handler(request):
+        payload = json.loads(request.content)
+        assert payload["questions"]["classification"]["criteria"] == criteria
+        return httpx.Response(200, json=choice_wire())
+
+    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+        result = client.choice(
+            state={"candidate": "I was charged twice."},
+            question="Choose a support category.",
+            criteria=criteria,
+        )
+
+    assert result.choice == "billing"
+
+
+@pytest.mark.parametrize("criteria,error", [
+    ({"billing": b"not JSON"}, TypeError),
+    ({"billing": {1: "non-string object key"}}, TypeError),
+    ({"billing": {"confidence": float("nan")}}, ValueError),
+    ({"billing": ["valid", {"invalid": {"set"}}]}, TypeError),
+])
+def test_invalid_nested_choice_criteria(criteria, error):
+    with JevClient("test-key", transport=httpx.MockTransport(lambda _: httpx.Response(500))) as client:
+        with pytest.raises(error):
+            client.choice(state={}, question="Classify.", criteria=criteria)
+
+
 @pytest.mark.parametrize("body", [
     None,
     {"model": "jev", "answers": {"classification": {"type": "noul", "noul": 0.9}}},

@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, TypeAlias, cast
 
 import httpx
 
@@ -12,6 +12,11 @@ ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 QUESTION_ID = "requirement"
 CHOICE_QUESTION_ID = "classification"
 SCORE_QUESTION_ID = "rating"
+
+JsonScalar: TypeAlias = str | int | float | bool | None
+JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
+ChoiceDescription: TypeAlias = str | Mapping[str, JsonValue] | Sequence[JsonValue]
+ChoiceCriteria: TypeAlias = Mapping[str, ChoiceDescription | None]
 
 
 class JevError(RuntimeError):
@@ -133,7 +138,7 @@ class NoulQuestion:
 @dataclass(frozen=True)
 class ChoiceQuestion:
     instructions: str
-    criteria: Mapping[str, str | None]
+    criteria: ChoiceCriteria
 
     def __post_init__(self) -> None:
         if not isinstance(self.instructions, str) or not self.instructions.strip():
@@ -144,7 +149,7 @@ class ChoiceQuestion:
         return {
             "type": "choice",
             "instructions": self.instructions,
-            "criteria": dict(self.criteria),
+            "criteria": _choice_criteria(self.criteria),
         }
 
 
@@ -184,20 +189,58 @@ class SystemOneResult:
         object.__setattr__(self, "answers", dict(self.answers))
 
 
-def _choice_criteria(criteria: Mapping[str, str | None]) -> dict[str, str | None]:
+def _json_value(value: object, ancestors: frozenset[int] = frozenset()) -> JsonValue:
+    if value is None or isinstance(value, (str, bool)):
+        return value
+    if type(value) is int:
+        return value
+    if type(value) is float:
+        if not math.isfinite(value):
+            raise ValueError("Choice descriptions cannot contain non-finite numbers.")
+        return value
+    if isinstance(value, Mapping):
+        identity = id(value)
+        if identity in ancestors:
+            raise ValueError("Choice descriptions cannot contain circular references.")
+        nested_ancestors = ancestors | {identity}
+        normalized: dict[str, JsonValue] = {}
+        for key, item in value.items():
+            if not isinstance(key, str):
+                raise TypeError("Choice description object keys must be strings.")
+            normalized[key] = _json_value(item, nested_ancestors)
+        return normalized
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        identity = id(value)
+        if identity in ancestors:
+            raise ValueError("Choice descriptions cannot contain circular references.")
+        nested_ancestors = ancestors | {identity}
+        return [_json_value(item, nested_ancestors) for item in value]
+    raise TypeError("Choice descriptions must contain only JSON-compatible values.")
+
+
+def _choice_criteria(criteria: ChoiceCriteria) -> dict[str, ChoiceDescription | None]:
     if not isinstance(criteria, Mapping) or not criteria:
         raise ValueError("criteria must be a nonempty mapping of labels to descriptions.")
     if len(criteria) > 255:
         raise ValueError("TypeSafe Choice supports at most 255 options.")
-    normalized: dict[str, str | None] = {}
+    normalized: dict[str, ChoiceDescription | None] = {}
     for label, description in criteria.items():
         if not isinstance(label, str) or not label.strip():
             raise ValueError("Choice labels must be nonempty strings.")
-        if description is not None and not isinstance(description, str):
-            raise TypeError("Choice descriptions must be strings or None.")
-        if isinstance(description, str) and not description.strip():
-            raise ValueError("Choice descriptions must be nonempty strings or None.")
-        normalized[label] = description
+        if isinstance(description, str):
+            if not description.strip():
+                raise ValueError("Choice descriptions must be nonempty strings or structured JSON.")
+            normalized[label] = description
+        elif description is None:
+            normalized[label] = None
+        elif isinstance(description, Mapping):
+            normalized[label] = cast(ChoiceDescription, _json_value(description))
+        elif isinstance(description, Sequence) and not isinstance(
+            description, (str, bytes, bytearray)
+        ):
+            normalized[label] = cast(ChoiceDescription, _json_value(description))
+        else:
+            raise TypeError("Choice descriptions must be strings, objects, arrays, or None.")
     return normalized
 
 
@@ -374,7 +417,7 @@ class JevClient:
         *,
         state: dict[str, Any],
         question: str,
-        criteria: Mapping[str, str | None],
+        criteria: ChoiceCriteria,
     ) -> ChoiceResult:
         """Select one configured class and return its distribution and confidence."""
         result = self.system_one(

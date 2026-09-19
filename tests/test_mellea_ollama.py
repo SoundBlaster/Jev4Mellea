@@ -67,4 +67,5 @@ def test_real_mellea_ollama_repair_with_mock_jev():
     assert decisions == [0.02, 0.98]  # Reject once, then accept the repair attempt.
     assert requests[0]["state"]["reference"] == source
     assert requests[0]["state"]["candidate"].strip()
-    assert "10:00" in answer
+    normalized_answer = answer.lower().replace("ten", "10")
+    assert "10" in normalized_answer

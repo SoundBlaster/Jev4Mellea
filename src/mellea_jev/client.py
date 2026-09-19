@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence, TypeAlias, cast
+from typing import Any, Mapping, Sequence, TypeAlias, TypedDict, cast
 
 import httpx
 
@@ -17,6 +17,13 @@ JsonScalar: TypeAlias = str | int | float | bool | None
 JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
 ChoiceDescription: TypeAlias = str | Mapping[str, JsonValue] | Sequence[JsonValue]
 ChoiceCriteria: TypeAlias = Mapping[str, ChoiceDescription | None]
+
+
+class NoulCriteria(TypedDict, total=False):
+    """Optional descriptions of the true and false Noul outcomes."""
+
+    true: ChoiceDescription | None
+    false: ChoiceDescription | None
 
 
 class JevError(RuntimeError):
@@ -126,13 +133,18 @@ class ScoreResult:
 @dataclass(frozen=True)
 class NoulQuestion:
     instructions: str
+    criteria: NoulCriteria | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.instructions, str) or not self.instructions.strip():
             raise ValueError("instructions must be nonempty text.")
+        object.__setattr__(self, "criteria", _noul_criteria(self.criteria))
 
     def to_payload(self) -> dict[str, Any]:
-        return {"type": "noul", "instructions": self.instructions}
+        payload: dict[str, Any] = {"type": "noul", "instructions": self.instructions}
+        if self.criteria is not None:
+            payload["criteria"] = _noul_criteria(self.criteria)
+        return payload
 
 
 @dataclass(frozen=True)
@@ -196,12 +208,12 @@ def _json_value(value: object, ancestors: frozenset[int] = frozenset()) -> JsonV
         return value
     if type(value) is float:
         if not math.isfinite(value):
-            raise ValueError("Choice descriptions cannot contain non-finite numbers.")
+            raise ValueError("Descriptions cannot contain non-finite numbers.")
         return value
     if isinstance(value, Mapping):
         identity = id(value)
         if identity in ancestors:
-            raise ValueError("Choice descriptions cannot contain circular references.")
+            raise ValueError("Descriptions cannot contain circular references.")
         nested_ancestors = ancestors | {identity}
         normalized: dict[str, JsonValue] = {}
         for key, item in value.items():
@@ -212,10 +224,27 @@ def _json_value(value: object, ancestors: frozenset[int] = frozenset()) -> JsonV
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
         identity = id(value)
         if identity in ancestors:
-            raise ValueError("Choice descriptions cannot contain circular references.")
+            raise ValueError("Descriptions cannot contain circular references.")
         nested_ancestors = ancestors | {identity}
         return [_json_value(item, nested_ancestors) for item in value]
-    raise TypeError("Choice descriptions must contain only JSON-compatible values.")
+    raise TypeError("Descriptions must contain only JSON-compatible values.")
+
+
+def _json_description(description: object, primitive: str) -> ChoiceDescription | None:
+    if description is None:
+        return None
+    if isinstance(description, str):
+        if not description.strip():
+            raise ValueError(
+                f"{primitive} descriptions must be nonempty strings or structured JSON."
+            )
+        return description
+    if isinstance(description, Mapping) or (
+        isinstance(description, Sequence)
+        and not isinstance(description, (str, bytes, bytearray))
+    ):
+        return cast(ChoiceDescription, _json_value(description))
+    raise TypeError(f"{primitive} descriptions must be strings, objects, arrays, or None.")
 
 
 def _choice_criteria(criteria: ChoiceCriteria) -> dict[str, ChoiceDescription | None]:
@@ -227,21 +256,21 @@ def _choice_criteria(criteria: ChoiceCriteria) -> dict[str, ChoiceDescription | 
     for label, description in criteria.items():
         if not isinstance(label, str) or not label.strip():
             raise ValueError("Choice labels must be nonempty strings.")
-        if isinstance(description, str):
-            if not description.strip():
-                raise ValueError("Choice descriptions must be nonempty strings or structured JSON.")
-            normalized[label] = description
-        elif description is None:
-            normalized[label] = None
-        elif isinstance(description, Mapping):
-            normalized[label] = cast(ChoiceDescription, _json_value(description))
-        elif isinstance(description, Sequence) and not isinstance(
-            description, (str, bytes, bytearray)
-        ):
-            normalized[label] = cast(ChoiceDescription, _json_value(description))
-        else:
-            raise TypeError("Choice descriptions must be strings, objects, arrays, or None.")
+        normalized[label] = _json_description(description, "Choice")
     return normalized
+
+
+def _noul_criteria(criteria: NoulCriteria | None) -> NoulCriteria | None:
+    if criteria is None:
+        return None
+    if not isinstance(criteria, Mapping):
+        raise TypeError("Noul criteria must be a mapping with 'true' and/or 'false' keys.")
+    normalized: dict[str, ChoiceDescription | None] = {}
+    for outcome, description in criteria.items():
+        if outcome not in ("true", "false"):
+            raise ValueError("Noul criteria keys must be 'true' or 'false'.")
+        normalized[outcome] = _json_description(description, "Noul")
+    return cast(NoulCriteria, normalized)
 
 
 def _score_criteria(criteria: Sequence[str]) -> list[str]:
@@ -403,10 +432,16 @@ class JevClient:
         except (KeyError, TypeError, ValueError, OverflowError):
             raise JevProtocolError("Malformed TypeSafe response; refusing to return answers.") from None
 
-    def noul(self, *, state: dict[str, Any], question: str) -> NoulResult:
+    def noul(
+        self,
+        *,
+        state: dict[str, Any],
+        question: str,
+        criteria: NoulCriteria | None = None,
+    ) -> NoulResult:
         """Return P(yes). Exceptions never include the response body or API key."""
         result = self.system_one(
-            state=state, questions={QUESTION_ID: NoulQuestion(question)}
+            state=state, questions={QUESTION_ID: NoulQuestion(question, criteria)}
         ).answers[QUESTION_ID]
         if not isinstance(result, NoulResult):
             raise JevProtocolError("Malformed TypeSafe Noul response; refusing to accept.")

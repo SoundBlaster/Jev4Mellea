@@ -45,6 +45,42 @@ def test_exact_request_and_response_contract():
     assert len(requests) == 1
 
 
+def test_noul_serializes_optional_outcome_criteria():
+    criteria = {
+        "true": {"what": "Urgency is explicit", "examples": ["ASAP", "immediately"]},
+        "false": ["No time pressure", {"example": "When you get a chance", "other": None}],
+    }
+
+    def handler(request):
+        payload = json.loads(request.content)
+        assert payload["questions"]["requirement"] == {
+            "type": "noul",
+            "instructions": "Is the message urgent?",
+            "criteria": criteria,
+        }
+        return httpx.Response(200, json=wire())
+
+    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+        result = client.noul(
+            state={"candidate": "Please do this ASAP."},
+            question="Is the message urgent?",
+            criteria=criteria,
+        )
+
+    assert result.p_yes == 0.97
+
+
+@pytest.mark.parametrize("criteria,error", [
+    ({"yes": "Invalid outcome key"}, ValueError),
+    ({"true": 1}, TypeError),
+    ({"false": " "}, ValueError),
+])
+def test_invalid_noul_criteria_rejected_before_request(criteria, error):
+    with JevClient("test-key", transport=httpx.MockTransport(lambda _: pytest.fail("No request expected."))) as client:
+        with pytest.raises(error):
+            client.noul(state={}, question="Valid?", criteria=criteria)
+
+
 @pytest.mark.parametrize("value", [None, True, False, "0.99", -0.1, 1.1, float("nan"), float("inf"), float("-inf"), [], {}])
 def test_invalid_probabilities_rejected(value):
     with pytest.raises(ValueError):

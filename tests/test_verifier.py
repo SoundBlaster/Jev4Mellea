@@ -71,6 +71,21 @@ def test_reference_is_omitted_when_not_supplied():
     assert client.calls[0]["state"] == {"candidate": "Hello"}
 
 
+def test_verifier_passes_optional_noul_criteria():
+    class CriteriaClient:
+        def noul(self, *, state, question, criteria):
+            self.criteria = criteria
+            return NoulResult(0.99, "jev-test-fixture")
+
+    configured = {"true": {"what": "The requirement is met"}, "false": ["Not met"]}
+    client = CriteriaClient()
+    verifier = JevVerifier(client, "The candidate is polite.", criteria=configured)
+    configured["true"]["what"] = "changed after verifier setup"
+
+    assert verifier.evaluate("Thank you!").accepted
+    assert client.criteria == {"true": {"what": "The requirement is met"}, "false": ["Not met"]}
+
+
 def test_explicit_repair_hint_not_a_fabricated_model_explanation():
     verdict = JevVerifier(
         ScriptedClient(0.03), "It matches the source.",

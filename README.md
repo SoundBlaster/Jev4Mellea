@@ -188,6 +188,10 @@ with JevClient() as jev:
         jev,
         'The museum opening time stated in the candidate matches the reference.',
         reference=source,
+        criteria={
+            "true": "The candidate gives the opening time from the reference.",
+            "false": "The candidate omits or contradicts the opening time.",
+        },
         accept_at=0.90,
         reject_at=0.10,
         repair_hint='State only the opening time supported by the reference.',
@@ -276,14 +280,18 @@ without installing the larger framework.
 The adapter uses TypeSafe's documented HTTP endpoint directly; it does **not**
 invent `jev.decide()` or emulate Jev with another LLM. The official
 `typesafe-sdk` is not required: HTTPX is sufficient for a single Noul request.
-The client can be replaced through the structural `NoulClient` interface.
+The client can be replaced through the structural `NoulClient` interface. When
+`JevVerifier.criteria` is supplied, that client must accept the optional
+`criteria` keyword; without criteria the verifier retains the original call
+shape.
 
 ## Prototype limits
 
 Only text is supported. `JevClient.system_one()` accepts one or more Noul,
 Choice, and Score questions per request; Choice criteria accept class labels
 with string, object, array, or `None` descriptions, and Score criteria accept
-2–10 ordered string descriptions. Streaming, async client, signed receipts,
+2–10 ordered string descriptions. Noul accepts optional `true` and `false`
+outcome descriptions. Streaming, async client, signed receipts,
 telemetry, and a full S2 router are not implemented. Each Mellea requirement
 makes its own request on every attempt. The order of requirements in the Mellea
 list **does not guarantee** that a cheap check will cancel the other paid checks.

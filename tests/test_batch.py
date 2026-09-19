@@ -140,3 +140,16 @@ def test_choice_question_deep_copies_structured_criteria():
     assert question.to_payload()["criteria"] == {
         "billing": {"what": "Payment issues", "examples": ["duplicate charge"]}
     }
+
+
+def test_noul_question_deep_copies_optional_criteria():
+    details = {"what": "Urgency is explicit"}
+    question = NoulQuestion("Is the message urgent?", {"true": details, "false": None})
+
+    details["what"] = "mutated"
+
+    assert question.to_payload() == {
+        "type": "noul",
+        "instructions": "Is the message urgent?",
+        "criteria": {"true": {"what": "Urgency is explicit"}, "false": None},
+    }

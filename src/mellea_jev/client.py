@@ -118,6 +118,72 @@ class ScoreResult:
         object.__setattr__(self, "probabilities", probabilities)
 
 
+@dataclass(frozen=True)
+class NoulQuestion:
+    instructions: str
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instructions, str) or not self.instructions.strip():
+            raise ValueError("instructions must be nonempty text.")
+
+    def to_payload(self) -> dict[str, Any]:
+        return {"type": "noul", "instructions": self.instructions}
+
+
+@dataclass(frozen=True)
+class ChoiceQuestion:
+    instructions: str
+    criteria: Mapping[str, str | None]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instructions, str) or not self.instructions.strip():
+            raise ValueError("instructions must be nonempty text.")
+        object.__setattr__(self, "criteria", _choice_criteria(self.criteria))
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "type": "choice",
+            "instructions": self.instructions,
+            "criteria": dict(self.criteria),
+        }
+
+
+@dataclass(frozen=True)
+class ScoreQuestion:
+    instructions: str
+    criteria: Sequence[str]
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.instructions, str) or not self.instructions.strip():
+            raise ValueError("instructions must be nonempty text.")
+        object.__setattr__(self, "criteria", tuple(_score_criteria(self.criteria)))
+
+    def to_payload(self) -> dict[str, Any]:
+        return {
+            "type": "score",
+            "instructions": self.instructions,
+            "criteria": list(self.criteria),
+        }
+
+
+TypeSafeQuestion = NoulQuestion | ChoiceQuestion | ScoreQuestion
+TypeSafeAnswer = NoulResult | ChoiceResult | ScoreResult
+
+
+@dataclass(frozen=True)
+class SystemOneResult:
+    answers: Mapping[str, TypeSafeAnswer]
+    model: str
+    request_id: str | None = None
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.answers, Mapping) or not self.answers:
+            raise ValueError("Expected at least one TypeSafe answer.")
+        if not isinstance(self.model, str) or not self.model.strip():
+            raise ValueError("Expected a nonempty response model name.")
+        object.__setattr__(self, "answers", dict(self.answers))
+
+
 def _choice_criteria(criteria: Mapping[str, str | None]) -> dict[str, str | None]:
     if not isinstance(criteria, Mapping) or not criteria:
         raise ValueError("criteria must be a nonempty mapping of labels to descriptions.")
@@ -153,12 +219,60 @@ def _score_response_map(value: object, level_count: int) -> dict[int, Any]:
     return {level: value[str(level)] for level in range(level_count)}
 
 
+def _parse_answer(
+    question: TypeSafeQuestion,
+    answer: object,
+    *,
+    model: str,
+    request_id: str | None,
+) -> TypeSafeAnswer:
+    if not isinstance(answer, dict):
+        raise ValueError("Each answer must be an object.")
+    if isinstance(question, NoulQuestion):
+        if answer.get("type") != "noul":
+            raise ValueError("Expected a Noul answer.")
+        return NoulResult(
+            p_yes=probability(answer["noul"]), model=model, request_id=request_id
+        )
+    if isinstance(question, ChoiceQuestion):
+        if answer.get("type") != "choice":
+            raise ValueError("Expected a Choice answer.")
+        result = ChoiceResult(
+            choice=answer["choice"],
+            confidence=probability(answer["confidence"]),
+            probabilities=answer["probabilities"],
+            model=model,
+            request_id=request_id,
+        )
+        if set(result.probabilities) != set(question.criteria) or result.choice not in question.criteria:
+            raise ValueError("Choice answer labels do not match the requested criteria.")
+        return result
+    if isinstance(question, ScoreQuestion):
+        if answer.get("type") != "score":
+            raise ValueError("Expected a Score answer.")
+        probabilities = _score_response_map(answer["probabilities"], len(question.criteria))
+        legend = _score_response_map(answer["legend"], len(question.criteria))
+        result = ScoreResult(
+            score=answer["score"],
+            confidence=probability(answer["confidence"]),
+            probabilities=probabilities,
+            legend=legend,
+            model=model,
+            request_id=request_id,
+        )
+        if result.legend != dict(enumerate(question.criteria)):
+            raise ValueError("Score legend does not match the requested criteria.")
+        return result
+    raise TypeError("Unsupported TypeSafe question.")
+
+
 class JevClient:
-    """One Noul, Choice, or Score question per request. No hidden retries; close with a context manager.
+    """Synchronous TypeSafe client with single and batched question methods.
 
     Only the official HTTPS endpoint is used. ``transport`` is a trusted
     dependency-injection hook for tests, not an untrusted per-request option.
-    HTTP timeout is per operation, not an end-to-end wall-clock deadline.
+    There are no hidden retries. HTTP timeout is per operation, not an
+    end-to-end wall-clock deadline. Close with a context manager.
     """
 
     def __init__(
@@ -187,12 +301,25 @@ class JevClient:
             transport=transport,
         )
 
-    def noul(self, *, state: dict[str, Any], question: str) -> NoulResult:
-        """Return P(yes). Exceptions never include the response body or API key."""
+    def system_one(
+        self,
+        *,
+        state: dict[str, Any],
+        questions: Mapping[str, TypeSafeQuestion],
+    ) -> SystemOneResult:
+        """Evaluate one or more named primitive questions in a single HTTP request."""
         if not isinstance(state, dict):
             raise TypeError("state must be a JSON-serializable dictionary.")
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("question must be a nonempty string.")
+        if not isinstance(questions, Mapping) or not questions:
+            raise ValueError("questions must be a nonempty mapping of IDs to question types.")
+        normalized_questions: dict[str, TypeSafeQuestion] = {}
+        for question_id, question in questions.items():
+            if not isinstance(question_id, str) or not question_id.strip():
+                raise ValueError("Question IDs must be nonempty strings.")
+            if not isinstance(question, (NoulQuestion, ChoiceQuestion, ScoreQuestion)):
+                raise TypeError("questions must contain NoulQuestion, ChoiceQuestion, or ScoreQuestion values.")
+            normalized_questions[question_id] = question
+
         try:
             response = self._http.post(
                 ENDPOINT,
@@ -200,7 +327,8 @@ class JevClient:
                     "model": self.model,
                     "state": state,
                     "questions": {
-                        QUESTION_ID: {"type": "noul", "instructions": question}
+                        question_id: question.to_payload()
+                        for question_id, question in normalized_questions.items()
                     },
                 },
             )
@@ -209,20 +337,37 @@ class JevClient:
             raise JevHTTPError(exc.response.status_code) from None
         except httpx.RequestError:
             raise JevError("TypeSafe transport failed; validation did not complete.") from None
+
         try:
             data = response.json()
-            if not isinstance(data, dict):
+            if not isinstance(data, dict) or not isinstance(data.get("answers"), dict):
                 raise ValueError
-            answer = data["answers"][QUESTION_ID]
-            if not isinstance(answer, dict) or answer.get("type") != "noul":
-                raise ValueError
-            return NoulResult(
-                p_yes=probability(answer["noul"]),
-                model=data["model"],
-                request_id=response.headers.get("x-typesafe-request-id"),
-            )
+            raw_answers = data["answers"]
+            if set(raw_answers) != set(normalized_questions):
+                raise ValueError("Answer IDs do not match the request.")
+            model = data["model"]
+            request_id = response.headers.get("x-typesafe-request-id")
+            answers = {
+                question_id: _parse_answer(
+                    question,
+                    raw_answers[question_id],
+                    model=model,
+                    request_id=request_id,
+                )
+                for question_id, question in normalized_questions.items()
+            }
+            return SystemOneResult(answers, model, request_id)
         except (KeyError, TypeError, ValueError, OverflowError):
-            raise JevProtocolError("Malformed TypeSafe Noul response; refusing to accept.") from None
+            raise JevProtocolError("Malformed TypeSafe response; refusing to return answers.") from None
+
+    def noul(self, *, state: dict[str, Any], question: str) -> NoulResult:
+        """Return P(yes). Exceptions never include the response body or API key."""
+        result = self.system_one(
+            state=state, questions={QUESTION_ID: NoulQuestion(question)}
+        ).answers[QUESTION_ID]
+        if not isinstance(result, NoulResult):
+            raise JevProtocolError("Malformed TypeSafe Noul response; refusing to accept.")
+        return result
 
     def choice(
         self,
@@ -232,50 +377,13 @@ class JevClient:
         criteria: Mapping[str, str | None],
     ) -> ChoiceResult:
         """Select one configured class and return its distribution and confidence."""
-        if not isinstance(state, dict):
-            raise TypeError("state must be a JSON-serializable dictionary.")
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("question must be a nonempty string.")
-        choices = _choice_criteria(criteria)
-        try:
-            response = self._http.post(
-                ENDPOINT,
-                json={
-                    "model": self.model,
-                    "state": state,
-                    "questions": {
-                        CHOICE_QUESTION_ID: {
-                            "type": "choice",
-                            "instructions": question,
-                            "criteria": choices,
-                        }
-                    },
-                },
-            )
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise JevHTTPError(exc.response.status_code) from None
-        except httpx.RequestError:
-            raise JevError("TypeSafe transport failed; validation did not complete.") from None
-        try:
-            data = response.json()
-            if not isinstance(data, dict):
-                raise ValueError
-            answer = data["answers"][CHOICE_QUESTION_ID]
-            if not isinstance(answer, dict) or answer.get("type") != "choice":
-                raise ValueError
-            result = ChoiceResult(
-                choice=answer["choice"],
-                confidence=probability(answer["confidence"]),
-                probabilities=answer["probabilities"],
-                model=data["model"],
-                request_id=response.headers.get("x-typesafe-request-id"),
-            )
-            if set(result.probabilities) != set(choices) or result.choice not in choices:
-                raise ValueError
-            return result
-        except (KeyError, TypeError, ValueError, OverflowError):
-            raise JevProtocolError("Malformed TypeSafe Choice response; refusing to classify.") from None
+        result = self.system_one(
+            state=state,
+            questions={CHOICE_QUESTION_ID: ChoiceQuestion(question, criteria)},
+        ).answers[CHOICE_QUESTION_ID]
+        if not isinstance(result, ChoiceResult):
+            raise JevProtocolError("Malformed TypeSafe Choice response; refusing to classify.")
+        return result
 
     def score(
         self,
@@ -285,55 +393,13 @@ class JevClient:
         criteria: Sequence[str],
     ) -> ScoreResult:
         """Rate the state against ordered levels and return the full distribution."""
-        if not isinstance(state, dict):
-            raise TypeError("state must be a JSON-serializable dictionary.")
-        if not isinstance(question, str) or not question.strip():
-            raise ValueError("question must be a nonempty string.")
-        levels = _score_criteria(criteria)
-        try:
-            response = self._http.post(
-                ENDPOINT,
-                json={
-                    "model": self.model,
-                    "state": state,
-                    "questions": {
-                        SCORE_QUESTION_ID: {
-                            "type": "score",
-                            "instructions": question,
-                            "criteria": levels,
-                        }
-                    },
-                },
-            )
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise JevHTTPError(exc.response.status_code) from None
-        except httpx.RequestError:
-            raise JevError("TypeSafe transport failed; validation did not complete.") from None
-        try:
-            data = response.json()
-            if not isinstance(data, dict):
-                raise ValueError
-            answer = data["answers"][SCORE_QUESTION_ID]
-            if not isinstance(answer, dict) or answer.get("type") != "score":
-                raise ValueError
-            probabilities = _score_response_map(answer["probabilities"], len(levels))
-            legend = _score_response_map(answer["legend"], len(levels))
-            result = ScoreResult(
-                score=answer["score"],
-                confidence=probability(answer["confidence"]),
-                probabilities=probabilities,
-                legend=legend,
-                model=data["model"],
-                request_id=response.headers.get("x-typesafe-request-id"),
-            )
-            if len(result.probabilities) != len(levels) or result.legend != dict(enumerate(levels)):
-                raise ValueError
-            if not 0 <= result.score <= len(levels) - 1:
-                raise ValueError
-            return result
-        except (KeyError, TypeError, ValueError, OverflowError):
-            raise JevProtocolError("Malformed TypeSafe Score response; refusing to score.") from None
+        result = self.system_one(
+            state=state,
+            questions={SCORE_QUESTION_ID: ScoreQuestion(question, criteria)},
+        ).answers[SCORE_QUESTION_ID]
+        if not isinstance(result, ScoreResult):
+            raise JevProtocolError("Malformed TypeSafe Score response; refusing to score.")
+        return result
 
     def close(self) -> None:
         self._http.close()

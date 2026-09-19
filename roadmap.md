@@ -18,14 +18,15 @@ projects. A listed feature is not a release commitment.
 - Add Jev `Score` support for ordered scales, with response validation and a
   Mellea `Requirement` bridge for configurable inclusive score bounds.
 
-## Next — Complete the request model
+## In progress — Batched questions
 
-- Support multiple named questions in one TypeSafe request, including mixed
-  Noul and Choice questions; preserve per-question results and errors.
+- Support multiple named Noul, Choice, and Score questions in one TypeSafe
+  request; preserve typed per-question results and fail closed on mismatched IDs.
+
+## Next — Broaden primitive criteria
+
 - Accept the structured Choice criteria forms supported by the TypeSafe API.
 - Allow callers to provide Noul criteria in addition to the current instruction.
-- Add contract tests for malformed, partial, and unexpected multi-question
-  responses before relying on these capabilities in client code.
 
 ## Then — Make behavior observable and measurable
 

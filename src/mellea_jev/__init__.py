@@ -28,6 +28,15 @@ from .verifier import (
     Verdict,
     accepted_text,
 )
+from .contracts import (
+    ChoiceProvider,
+    ChoiceResponse,
+    NoulProvider,
+    NoulResponse,
+    PrimitiveProvider,
+    ScoreProvider,
+    ScoreResponse,
+)
 
 __all__ = [
     "ChoiceCriteria",
@@ -47,5 +56,7 @@ __all__ = [
     "JsonValue",
     "JevClassifier", "JevScorer", "JevVerifier",
     "ReviewRequired", "Verdict", "accepted_text",
+    "ChoiceProvider", "ChoiceResponse", "NoulProvider", "NoulResponse",
+    "PrimitiveProvider", "ScoreProvider", "ScoreResponse",
 ]
 __version__ = "0.1.0"

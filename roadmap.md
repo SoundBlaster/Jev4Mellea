@@ -4,6 +4,27 @@ This roadmap describes proposed development for the Jev adapter. Priorities may
 change as the TypeSafe API and Mellea integration are exercised by real client
 projects. A listed feature is not a release commitment.
 
+## Provider portability
+
+The goal is to let client projects select another evaluator without changing
+their Mellea requirements or depending on a large plugin framework. Add each
+stage in a separate pull request and keep `JevClient` as a supported backend.
+
+1. Define small provider-neutral Noul, Choice, and Score contracts. Mellea
+   helpers should depend on these contracts, and callers should be able to
+   implement a single primitive without inheriting from package classes.
+2. Isolate TypeSafe request/response serialization in a TypeSafe provider while
+   retaining `JevClient` as the compatible public entry point.
+3. Implement a second provider integration to exercise the contracts against a
+   different API and record any unavoidable semantic differences.
+4. Consider configuration-based selection or an entry-point plugin mechanism
+   only after multiple maintained providers demonstrate the need.
+
+Provider contracts are ready for broader use when a second provider can satisfy
+them without importing TypeSafe wire models and existing Jev callers remain
+compatible. Plugin discovery is deliberately deferred until provider count and
+maintenance ownership justify it.
+
 ## In progress — Choice support (PR #3)
 
 - Classify text into a configured set of Choice labels.

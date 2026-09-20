@@ -256,6 +256,14 @@ final result with `accepted_text()`. See [API notes](API_NOTES.md) for external
 contracts and [test report](TEST_REPORT.md) for the evidence behind the current
 prototype status.
 
+The Mellea helpers depend on small structural protocols: `NoulProvider`,
+`ChoiceProvider`, and `ScoreProvider` (or the combined `PrimitiveProvider`). A
+custom backend can implement only the primitive it needs; it does not need to
+inherit from a package class. Its response must expose the fields in
+`NoulResponse`, `ChoiceResponse`, or `ScoreResponse`. The current criteria
+shapes still follow TypeSafe's API, and batched requests remain a `JevClient`
+feature. See [provider contracts](src/mellea_jev/contracts.py).
+
 ## Development and further reading
 
 ```bash

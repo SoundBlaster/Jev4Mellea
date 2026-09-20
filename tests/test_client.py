@@ -4,7 +4,10 @@ import json
 import httpx
 import pytest
 
-from mellea_jev import JevClient, JevError, JevHTTPError, JevProtocolError, NoulResult
+from mellea_jev import (
+    JevClient, JevError, JevHTTPError, JevProtocolError, NoulQuestion, NoulResult,
+    TypeSafeUsage,
+)
 from mellea_jev.client import ENDPOINT, probability
 
 
@@ -41,7 +44,9 @@ def test_exact_request_and_response_contract():
             state={"candidate": "Привет", "reference": "Hello"},
             question="Is it a greeting?",
         )
-    assert result == NoulResult(0.97, "jev-test-fixture", "fixture-42")
+    assert result == NoulResult(
+        0.97, "jev-test-fixture", "fixture-42", TypeSafeUsage(50, 2)
+    )
     assert len(requests) == 1
 
 
@@ -105,6 +110,34 @@ def test_malformed_response_fails_closed(body):
     with JevClient("test", transport=transport_for(body)) as client:
         with pytest.raises(JevProtocolError):
             client.noul(state={"candidate": "hi"}, question="Is it a greeting?")
+
+
+@pytest.mark.parametrize("usage", [
+    "invalid", [], {"input_tokens": True}, {"output_tokens": -1},
+    {"input_tokens": "50"},
+])
+def test_malformed_usage_metadata_fails_closed(usage):
+    body = {**wire(), "usage": usage}
+    with JevClient("test", transport=transport_for(body)) as client:
+        with pytest.raises(JevProtocolError):
+            client.noul(state={}, question="Valid?")
+
+
+@pytest.mark.parametrize("usage", [
+    None,
+    {"input_tokens": None, "output_tokens": 2, "future_field": "ignored"},
+])
+def test_usage_metadata_is_optional_and_forward_compatible(usage):
+    body = {**wire(), "usage": usage} if usage is not None else {
+        "model": wire()["model"], "answers": wire()["answers"]
+    }
+    with JevClient("test", transport=transport_for(body)) as client:
+        result = client.system_one(
+            state={}, questions={"requirement": NoulQuestion("Valid?")}
+        )
+    expected = TypeSafeUsage(None, 2) if usage is not None else None
+    assert result.usage == expected
+    assert result.answers["requirement"].usage == expected
 
 
 @pytest.mark.parametrize("content", [b"not json", b"{", b'{"model":"jev-test","answers":{"requirement":{"type":"noul","noul":NaN}}}'])

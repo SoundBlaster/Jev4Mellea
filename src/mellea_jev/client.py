@@ -40,6 +40,25 @@ class JevProtocolError(JevError):
     """The server response does not satisfy the expected TypeSafe contract."""
 
 
+@dataclass(frozen=True)
+class TypeSafeUsage:
+    """Optional request usage metadata reported by TypeSafe."""
+
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+
+    def __post_init__(self) -> None:
+        for name in ("input_tokens", "output_tokens"):
+            value = getattr(self, name)
+            if value is not None and (type(value) is not int or value < 0):
+                raise ValueError(f"{name} must be a nonnegative integer or None.")
+
+
+def _validate_usage(value: TypeSafeUsage | None) -> None:
+    if value is not None and not isinstance(value, TypeSafeUsage):
+        raise ValueError("usage must be TypeSafeUsage or None.")
+
+
 def probability(value: object) -> float:
     """Reject bools, numeric strings, NaN, infinity and out-of-range values."""
     if type(value) not in (int, float) or not 0 <= value <= 1:
@@ -52,11 +71,13 @@ class NoulResult:
     p_yes: float
     model: str
     request_id: str | None = None
+    usage: TypeSafeUsage | None = None
 
     def __post_init__(self) -> None:
         probability(self.p_yes)
         if not isinstance(self.model, str) or not self.model.strip():
             raise ValueError("Expected a nonempty response model name.")
+        _validate_usage(self.usage)
 
 
 @dataclass(frozen=True)
@@ -66,6 +87,7 @@ class ChoiceResult:
     probabilities: dict[str, float]
     model: str
     request_id: str | None = None
+    usage: TypeSafeUsage | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.choice, str) or not self.choice.strip():
@@ -86,6 +108,7 @@ class ChoiceResult:
             raise ValueError("Selected choice must have the highest probability.")
         if not isinstance(self.model, str) or not self.model.strip():
             raise ValueError("Expected a nonempty response model name.")
+        _validate_usage(self.usage)
         object.__setattr__(self, "confidence", confidence)
         object.__setattr__(self, "probabilities", probabilities)
 
@@ -98,6 +121,7 @@ class ScoreResult:
     legend: dict[int, str]
     model: str
     request_id: str | None = None
+    usage: TypeSafeUsage | None = None
 
     def __post_init__(self) -> None:
         if type(self.score) not in (int, float) or not math.isfinite(self.score):
@@ -125,6 +149,7 @@ class ScoreResult:
             raise ValueError("Score legend descriptions must be nonempty strings.")
         if not isinstance(self.model, str) or not self.model.strip():
             raise ValueError("Expected a nonempty response model name.")
+        _validate_usage(self.usage)
         object.__setattr__(self, "score", float(self.score))
         object.__setattr__(self, "confidence", float(self.confidence))
         object.__setattr__(self, "probabilities", probabilities)
@@ -192,12 +217,14 @@ class SystemOneResult:
     answers: Mapping[str, TypeSafeAnswer]
     model: str
     request_id: str | None = None
+    usage: TypeSafeUsage | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.answers, Mapping) or not self.answers:
             raise ValueError("Expected at least one TypeSafe answer.")
         if not isinstance(self.model, str) or not self.model.strip():
             raise ValueError("Expected a nonempty response model name.")
+        _validate_usage(self.usage)
         object.__setattr__(self, "answers", dict(self.answers))
 
 
@@ -297,6 +324,7 @@ def _parse_answer(
     *,
     model: str,
     request_id: str | None,
+    usage: TypeSafeUsage | None,
 ) -> TypeSafeAnswer:
     if not isinstance(answer, dict):
         raise ValueError("Each answer must be an object.")
@@ -304,7 +332,8 @@ def _parse_answer(
         if answer.get("type") != "noul":
             raise ValueError("Expected a Noul answer.")
         return NoulResult(
-            p_yes=probability(answer["noul"]), model=model, request_id=request_id
+            p_yes=probability(answer["noul"]), model=model, request_id=request_id,
+            usage=usage,
         )
     if isinstance(question, ChoiceQuestion):
         if answer.get("type") != "choice":
@@ -315,6 +344,7 @@ def _parse_answer(
             probabilities=answer["probabilities"],
             model=model,
             request_id=request_id,
+            usage=usage,
         )
         if set(result.probabilities) != set(question.criteria) or result.choice not in question.criteria:
             raise ValueError("Choice answer labels do not match the requested criteria.")
@@ -331,6 +361,7 @@ def _parse_answer(
             legend=legend,
             model=model,
             request_id=request_id,
+            usage=usage,
         )
         if result.legend != dict(enumerate(question.criteria)):
             raise ValueError("Score legend does not match the requested criteria.")
@@ -418,6 +449,16 @@ class JevClient:
             if set(raw_answers) != set(normalized_questions):
                 raise ValueError("Answer IDs do not match the request.")
             model = data["model"]
+            raw_usage = data.get("usage")
+            if raw_usage is None:
+                usage = None
+            elif isinstance(raw_usage, dict):
+                usage = TypeSafeUsage(
+                    input_tokens=raw_usage.get("input_tokens"),
+                    output_tokens=raw_usage.get("output_tokens"),
+                )
+            else:
+                raise ValueError("Usage metadata must be an object or null.")
             request_id = response.headers.get("x-typesafe-request-id")
             answers = {
                 question_id: _parse_answer(
@@ -425,10 +466,11 @@ class JevClient:
                     raw_answers[question_id],
                     model=model,
                     request_id=request_id,
+                    usage=usage,
                 )
                 for question_id, question in normalized_questions.items()
             }
-            return SystemOneResult(answers, model, request_id)
+            return SystemOneResult(answers, model, request_id, usage)
         except (KeyError, TypeError, ValueError, OverflowError):
             raise JevProtocolError("Malformed TypeSafe response; refusing to return answers.") from None
 

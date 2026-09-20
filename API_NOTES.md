@@ -33,6 +33,12 @@ Authorization: Bearer <API_KEY>
 переменную `TYPESAFE_API_KEY` и alias `jev-latest`.
 [Ответы SDK](https://docs.typesafe.ai/sdk/python/api/types/responses) описывают
 заголовок `x-typesafe-request-id`, который клиент переносит в метаданные.
+Ответ также включает верхнеуровневый объект `usage` со счётчиками
+`input_tokens` и `output_tokens`; SDK допускает, что отдельный счётчик не
+сообщён. Адаптер возвращает их в `TypeSafeUsage` на `SystemOneResult` и на
+каждом типизированном ответе. Метаданные не участвуют в семантическом решении.
+Отсутствующий `usage` принимается как `None` для совместимости; неизвестные
+поля объекта игнорируются.
 
 [Choice](https://docs.typesafe.ai/primitives/choice) выбирает один класс из
 фиксированного набора. В API запросе указываются `type: "choice"`,

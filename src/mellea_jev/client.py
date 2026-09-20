@@ -9,26 +9,30 @@ from .contracts import (
     NoulCriteria,
 )
 from .criteria import _json_description, _json_value, probability
+from .results import (
+    ChoiceResult,
+    NoulResult,
+    ScoreResult,
+    TypeSafeUsage,
+    UsageMetadata,
+    _validate_usage,
+)
 from .providers.typesafe import (
     CHOICE_QUESTION_ID,
     ENDPOINT,
     QUESTION_ID,
     SCORE_QUESTION_ID,
     ChoiceQuestion,
-    ChoiceResult,
     JevClient,
     JevError,
     JevHTTPError,
     JevProtocolError,
     NoulQuestion,
-    NoulResult,
     ScoreQuestion,
-    ScoreResult,
     SystemOneResult,
     TypeSafeAnswer,
     TypeSafeProvider,
     TypeSafeQuestion,
-    TypeSafeUsage,
     _choice_criteria,
     _noul_criteria,
     _parse_answer,
@@ -60,5 +64,6 @@ __all__ = [
     "TypeSafeProvider",
     "TypeSafeQuestion",
     "TypeSafeUsage",
+    "UsageMetadata",
     "probability",
 ]

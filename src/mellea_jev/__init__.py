@@ -1,5 +1,7 @@
 """Unofficial Mellea–Jev adapter. No paid request runs on import."""
 from .client import (
+    ChoiceCriteria,
+    ChoiceDescription,
     ChoiceQuestion,
     ChoiceResult,
     JevClient,
@@ -13,6 +15,7 @@ from .client import (
     SystemOneResult,
     TypeSafeAnswer,
     TypeSafeQuestion,
+    JsonValue,
 )
 from .verifier import (
     GenerationRejected,
@@ -25,9 +28,16 @@ from .verifier import (
 )
 
 __all__ = [
-    "ChoiceQuestion", "ChoiceResult", "JevClient", "JevError", "JevHTTPError",
+    "ChoiceCriteria",
+    "ChoiceDescription",
+    "ChoiceQuestion",
+    "ChoiceResult",
+    "JevClient",
+    "JevError",
+    "JevHTTPError",
     "JevProtocolError", "NoulQuestion", "NoulResult", "ScoreQuestion", "ScoreResult",
     "SystemOneResult", "TypeSafeAnswer", "TypeSafeQuestion", "GenerationRejected",
+    "JsonValue",
     "JevClassifier", "JevScorer", "JevVerifier",
     "ReviewRequired", "Verdict", "accepted_text",
 ]

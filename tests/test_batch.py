@@ -127,3 +127,16 @@ def test_question_types_validate_and_copy_criteria():
 
     with pytest.raises(ValueError):
         NoulQuestion(" ")
+
+
+def test_choice_question_deep_copies_structured_criteria():
+    examples = ["duplicate charge"]
+    description = {"what": "Payment issues", "examples": examples}
+    question = ChoiceQuestion("Choose a class.", {"billing": description})
+
+    examples.append("refund delay")
+    description["what"] = "mutated"
+
+    assert question.to_payload()["criteria"] == {
+        "billing": {"what": "Payment issues", "examples": ["duplicate charge"]}
+    }

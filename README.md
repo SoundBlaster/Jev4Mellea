@@ -77,8 +77,12 @@ with JevClient() as jev:
 ```
 
 Each criteria key is a class label; its string value describes that class.
-Descriptions can also be `None` when the label is self-explanatory. TypeSafe
-allows up to 255 classes per Choice question. To require a generated Mellea
+Descriptions can also be `None` when the label is self-explanatory, or a JSON
+object or array when a class needs more guidance. Object fields are chosen by
+the caller; for example, TypeSafe does not reserve names such as `what`,
+`not_for`, or `examples`. Nested values must be JSON-compatible, and criteria
+are copied when the question is created. TypeSafe allows up to 255 classes per
+Choice question. To require a generated Mellea
 candidate to fit a particular class, use
 `classifier.as_requirement("billing", minimum_confidence=0.75)` in the
 `requirements` list. The optional confidence floor is application policy, not
@@ -278,11 +282,11 @@ The client can be replaced through the structural `NoulClient` interface.
 
 Only text is supported. `JevClient.system_one()` accepts one or more Noul,
 Choice, and Score questions per request; Choice criteria accept class labels
-with string descriptions or `None`, and Score criteria accept 2–10 ordered
-string descriptions. Streaming, async client, signed receipts, telemetry, and a
-full S2 router are not implemented. Each Mellea requirement makes its own
-request on every attempt. The order of requirements in the Mellea list **does
-not guarantee** that a cheap check will cancel the other paid checks.
+with string, object, array, or `None` descriptions, and Score criteria accept
+2–10 ordered string descriptions. Streaming, async client, signed receipts,
+telemetry, and a full S2 router are not implemented. Each Mellea requirement
+makes its own request on every attempt. The order of requirements in the Mellea
+list **does not guarantee** that a cheap check will cancel the other paid checks.
 
 The synchronous Mellea 0.7 callback runs inline, so the network request may
 block its event loop. A high-concurrency server needs a separate async variant

@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, Literal, Protocol, Sequence
 
 from .client import (
+    ChoiceCriteria,
     ChoiceResult,
     NoulResult,
     ScoreResult,
@@ -30,7 +31,7 @@ class ChoiceClient(Protocol):
         *,
         state: dict[str, Any],
         question: str,
-        criteria: dict[str, str | None],
+        criteria: ChoiceCriteria,
     ) -> ChoiceResult: ...
 
 
@@ -166,7 +167,7 @@ class JevClassifier:
         client: ChoiceClient,
         question: str,
         *,
-        criteria: dict[str, str | None],
+        criteria: ChoiceCriteria,
     ) -> None:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must be a nonempty string.")

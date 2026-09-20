@@ -16,6 +16,7 @@ from .client import (
     SystemOneResult,
     TypeSafeAnswer,
     TypeSafeQuestion,
+    TypeSafeUsage,
     JsonValue,
 )
 from .verifier import (
@@ -42,7 +43,7 @@ __all__ = [
     "NoulResult",
     "ScoreQuestion",
     "ScoreResult",
-    "SystemOneResult", "TypeSafeAnswer", "TypeSafeQuestion", "GenerationRejected",
+    "SystemOneResult", "TypeSafeAnswer", "TypeSafeQuestion", "TypeSafeUsage", "GenerationRejected",
     "JsonValue",
     "JevClassifier", "JevScorer", "JevVerifier",
     "ReviewRequired", "Verdict", "accepted_text",

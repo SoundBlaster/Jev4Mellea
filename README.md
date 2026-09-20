@@ -163,6 +163,10 @@ with JevClient() as jev:
 The single-primitive methods `noul()`, `choice()`, and `score()` use the same
 typed request path. Mellea requirements still validate independently; batch
 questions explicitly when the application needs one shared TypeSafe request.
+Each result exposes optional request usage metadata as `result.usage`, with
+`input_tokens` and `output_tokens` counts when TypeSafe reports them. Batch
+calls expose the same value on `SystemOneResult.usage` and each answer. Usage
+is informational and does not affect validation decisions.
 
 ## Connect to Mellea
 

@@ -3,7 +3,9 @@ import json
 import httpx
 import pytest
 
-from mellea_jev import ChoiceResult, JevClient, JevClassifier, JevProtocolError
+from mellea_jev import (
+    ChoiceResult, JevClient, JevClassifier, JevProtocolError, TypeSafeUsage,
+)
 from mellea_jev.client import ENDPOINT
 
 
@@ -61,6 +63,7 @@ def test_choice_serializes_schema_and_parses_selected_class():
         "billing", 0.8,
         {"billing": 0.8, "technical": 0.1, "other": 0.1},
         "jev-choice-fixture", "choice-42",
+        TypeSafeUsage(30, 5),
     )
 
 

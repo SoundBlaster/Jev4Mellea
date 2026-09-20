@@ -12,6 +12,7 @@ from mellea_jev import (
     NoulResult,
     ScoreQuestion,
     ScoreResult,
+    TypeSafeUsage,
 )
 from mellea_jev.client import ENDPOINT
 
@@ -51,6 +52,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
         }
         return httpx.Response(200, json={
             "model": "jev-batch-fixture",
+            "usage": {"input_tokens": 120, "output_tokens": 18},
             "answers": {
                 "urgent": {"type": "noul", "noul": 0.9},
                 "team": {
@@ -77,6 +79,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
     assert len(calls) == 1
     assert result.model == "jev-batch-fixture"
     assert result.request_id == "batch-1"
+    assert result.usage == TypeSafeUsage(120, 18)
     assert isinstance(result.answers["urgent"], NoulResult)
     assert result.answers["urgent"].p_yes == 0.9
     assert isinstance(result.answers["team"], ChoiceResult)
@@ -84,6 +87,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
     assert isinstance(result.answers["severity"], ScoreResult)
     assert result.answers["severity"].score == 1.5
     assert all(answer.request_id == "batch-1" for answer in result.answers.values())
+    assert all(answer.usage == result.usage for answer in result.answers.values())
 
 
 def test_system_one_rejects_missing_answers():

@@ -23,30 +23,55 @@ class NoulCriteria(TypedDict, total=False):
 class NoulResponse(Protocol):
     """Normalized output needed by the Mellea Noul requirement adapter."""
 
-    p_yes: float
-    model: str
-    request_id: str | None
+    @property
+    def p_yes(self) -> float: ...
+
+    @property
+    def model(self) -> str: ...
+
+    @property
+    def request_id(self) -> str | None: ...
 
 
 class ChoiceResponse(Protocol):
     """Normalized class prediction and its distribution."""
 
-    choice: str
-    confidence: float
-    probabilities: dict[str, float]
-    model: str
-    request_id: str | None
+    @property
+    def choice(self) -> str: ...
+
+    @property
+    def confidence(self) -> float: ...
+
+    @property
+    def probabilities(self) -> dict[str, float]: ...
+
+    @property
+    def model(self) -> str: ...
+
+    @property
+    def request_id(self) -> str | None: ...
 
 
 class ScoreResponse(Protocol):
     """Normalized ordinal score and its distribution."""
 
-    score: float
-    confidence: float
-    probabilities: dict[int, float]
-    legend: dict[int, str]
-    model: str
-    request_id: str | None
+    @property
+    def score(self) -> float: ...
+
+    @property
+    def confidence(self) -> float: ...
+
+    @property
+    def probabilities(self) -> dict[int, float]: ...
+
+    @property
+    def legend(self) -> dict[int, str]: ...
+
+    @property
+    def model(self) -> str: ...
+
+    @property
+    def request_id(self) -> str | None: ...
 
 
 class NoulProvider(Protocol):

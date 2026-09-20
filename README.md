@@ -27,6 +27,9 @@ make install
 export TYPESAFE_API_KEY='your-key'
 ```
 
+The Makefile defaults to Python 3.13. To use another supported interpreter,
+run `make install PYTHON=python3.11` (or set `PYTHON` to your installed version).
+
 Ask whether a candidate meets a positive requirement:
 
 ```python
@@ -43,8 +46,9 @@ with JevClient() as jev:
 ```
 
 `outcome` is `pass`, `fail`, or `uncertain`. Use `verifier.as_requirement()` to
-attach the same check to a Mellea generation flow. Without a key or network
-access, run `make demo` for an offline example using a mocked Jev response.
+attach the same check to a Mellea generation flow. Once the project dependencies
+are installed, `make demo` runs without a key or network access using a mocked
+Jev response.
 
 ## Examples
 
@@ -211,20 +215,27 @@ The single-question result objects also expose optional usage metadata.
 ### Use a check during Mellea generation
 
 For an existing Mellea session `m`, pass the adapter's requirement to
-`instruct()`:
+`instruct()`. Keep the Jev client open until sampling finishes because the
+requirement calls it during validation:
 
 ```python
 from mellea.stdlib.sampling import RepairTemplateStrategy
-from mellea_jev import accepted_text
+from mellea_jev import JevClient, JevVerifier, accepted_text
 
-sampled = m.instruct(
-    "State the museum's opening time using this source: {{source}}",
-    user_variables={"source": "The museum opens at 10:00."},
-    requirements=[verifier.as_requirement()],
-    strategy=RepairTemplateStrategy(loop_budget=3, concurrency_budget=1),
-    return_sampling_results=True,
-)
-answer = accepted_text(sampled)
+with JevClient() as jev:
+    verifier = JevVerifier(
+        jev,
+        "The candidate states the opening time supported by the source.",
+        reference="The museum opens at 10:00.",
+    )
+    sampled = m.instruct(
+        "State the museum's opening time using this source: {{source}}",
+        user_variables={"source": "The museum opens at 10:00."},
+        requirements=[verifier.as_requirement()],
+        strategy=RepairTemplateStrategy(loop_budget=3, concurrency_budget=1),
+        return_sampling_results=True,
+    )
+    answer = accepted_text(sampled)
 ```
 
 `accepted_text()` checks the final validation state before returning text. Do

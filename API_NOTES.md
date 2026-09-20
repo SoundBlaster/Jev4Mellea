@@ -22,6 +22,12 @@ Authorization: Bearer <API_KEY>
 [Noul](https://docs.typesafe.ai/primitives/noul) возвращает P(yes) от 0 до 1;
 это не булево значение и не отдельный confidence. Значение около 0
 означает уверенное «нет», а не низкую уверенность в результате «да».
+Поле `criteria` необязательно и уточняет значения исходов `true` и `false`.
+Схема [Python SDK](https://docs.typesafe.ai/sdk/python/api/types/questions)
+разрешает строковые, объектные и массивные описания, а также `null`; текущий
+[HTTP API reference](https://docs.typesafe.ai/api) перечисляет для этих полей
+только строки. Адаптер следует типизированной схеме SDK, но live-приём таких
+структур сервисом не проверен.
 
 [Quick start](https://docs.typesafe.ai/introduction/quickstart) подтверждает
 переменную `TYPESAFE_API_KEY` и alias `jev-latest`.

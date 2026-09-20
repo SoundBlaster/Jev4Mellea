@@ -3,18 +3,22 @@ from __future__ import annotations
 
 import math
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Any, Literal, Protocol, Sequence
+from typing import TYPE_CHECKING, Any, Literal, Sequence
 
 from .client import (
-    ChoiceCriteria,
-    ChoiceResult,
-    NoulCriteria,
-    NoulResult,
-    ScoreResult,
     _choice_criteria,
     _noul_criteria,
     _score_criteria,
     probability,
+)
+from .contracts import (
+    ChoiceCriteria,
+    ChoiceProvider,
+    ChoiceResponse,
+    NoulCriteria,
+    NoulProvider,
+    ScoreProvider,
+    ScoreResponse,
 )
 
 if TYPE_CHECKING:
@@ -23,34 +27,11 @@ if TYPE_CHECKING:
     from mellea.core.sampling import SamplingResult
 
 
-class NoulClient(Protocol):
-    def noul(
-        self,
-        *,
-        state: dict[str, Any],
-        question: str,
-        criteria: NoulCriteria | None = None,
-    ) -> NoulResult: ...
-
-
-class ChoiceClient(Protocol):
-    def choice(
-        self,
-        *,
-        state: dict[str, Any],
-        question: str,
-        criteria: ChoiceCriteria,
-    ) -> ChoiceResult: ...
-
-
-class ScoreClient(Protocol):
-    def score(
-        self,
-        *,
-        state: dict[str, Any],
-        question: str,
-        criteria: Sequence[str],
-    ) -> ScoreResult: ...
+# Backward-compatible names for callers importing the old structural client
+# protocols from this module.
+NoulClient = NoulProvider
+ChoiceClient = ChoiceProvider
+ScoreClient = ScoreProvider
 
 
 @dataclass(frozen=True)
@@ -96,7 +77,7 @@ class JevVerifier:
 
     def __init__(
         self,
-        client: NoulClient,
+        client: NoulProvider,
         description: str,
         *,
         reference: str | None = None,
@@ -178,7 +159,7 @@ class JevClassifier:
 
     def __init__(
         self,
-        client: ChoiceClient,
+        client: ChoiceProvider,
         question: str,
         *,
         criteria: ChoiceCriteria,
@@ -194,7 +175,7 @@ class JevClassifier:
         candidate: str,
         *,
         reference: str | None = None,
-    ) -> ChoiceResult:
+    ) -> ChoiceResponse:
         if not isinstance(candidate, str):
             raise TypeError("Only textual candidates are supported.")
         if not candidate.strip():
@@ -281,7 +262,7 @@ class JevScorer:
 
     def __init__(
         self,
-        client: ScoreClient,
+        client: ScoreProvider,
         question: str,
         *,
         criteria: Sequence[str],
@@ -297,7 +278,7 @@ class JevScorer:
         candidate: str,
         *,
         reference: str | None = None,
-    ) -> ScoreResult:
+    ) -> ScoreResponse:
         """Return the fractional position, distribution, and confidence."""
         if not isinstance(candidate, str):
             raise TypeError("Only textual candidates are supported.")

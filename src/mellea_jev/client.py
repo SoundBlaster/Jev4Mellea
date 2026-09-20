@@ -4,27 +4,21 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence, TypeAlias, TypedDict, cast
+from typing import Any, Mapping, Sequence, cast
 
 import httpx
+
+from .contracts import (
+    ChoiceCriteria,
+    ChoiceDescription,
+    JsonValue,
+    NoulCriteria,
+)
 
 ENDPOINT = "https://api.typesafe.ai/v1/systemone"
 QUESTION_ID = "requirement"
 CHOICE_QUESTION_ID = "classification"
 SCORE_QUESTION_ID = "rating"
-
-JsonScalar: TypeAlias = str | int | float | bool | None
-JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]
-ChoiceDescription: TypeAlias = str | Mapping[str, JsonValue] | Sequence[JsonValue]
-ChoiceCriteria: TypeAlias = Mapping[str, ChoiceDescription | None]
-
-
-class NoulCriteria(TypedDict, total=False):
-    """Optional descriptions of the true and false Noul outcomes."""
-
-    true: ChoiceDescription | None
-    false: ChoiceDescription | None
-
 
 class JevError(RuntimeError):
     """A transport or API-contract failure, not a semantic rejection."""

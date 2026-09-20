@@ -261,8 +261,10 @@ The Mellea helpers depend on small structural protocols: `NoulProvider`,
 custom backend can implement only the primitive it needs; it does not need to
 inherit from a package class. Its response must expose the fields in
 `NoulResponse`, `ChoiceResponse`, or `ScoreResponse`. The current criteria
-shapes still follow TypeSafe's API, and batched requests remain a `JevClient`
-feature. See [provider contracts](src/mellea_jev/contracts.py).
+shapes follow the TypeSafe request model, and each provider may impose its own
+limits. Batched requests remain a TypeSafe feature. Use `JevClient` as the
+existing compatible name, or import `TypeSafeProvider` explicitly from
+`mellea_jev.providers`. See [provider contracts](src/mellea_jev/contracts.py).
 
 ## Development and further reading
 

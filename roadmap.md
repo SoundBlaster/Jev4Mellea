@@ -10,11 +10,12 @@ The goal is to let client projects select another evaluator without changing
 their Mellea requirements or depending on a large plugin framework. Add each
 stage in a separate pull request and keep `JevClient` as a supported backend.
 
-1. Define small provider-neutral Noul, Choice, and Score contracts. Mellea
-   helpers should depend on these contracts, and callers should be able to
+1. **Complete (PR #11).** Define small provider-neutral Noul, Choice, and Score
+   contracts. Mellea helpers depend on these contracts, and callers can
    implement a single primitive without inheriting from package classes.
-2. Isolate TypeSafe request/response serialization in a TypeSafe provider while
-   retaining `JevClient` as the compatible public entry point.
+2. **In progress.** Isolate TypeSafe request/response serialization in a
+   TypeSafe provider while retaining `JevClient` as the compatible public entry
+   point.
 3. Implement a second provider integration to exercise the contracts against a
    different API and record any unavoidable semantic differences.
 4. Consider configuration-based selection or an entry-point plugin mechanism

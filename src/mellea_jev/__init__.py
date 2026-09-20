@@ -37,6 +37,7 @@ from .contracts import (
     ScoreProvider,
     ScoreResponse,
 )
+from .providers import TypeSafeProvider
 
 __all__ = [
     "ChoiceCriteria",
@@ -58,5 +59,6 @@ __all__ = [
     "ReviewRequired", "Verdict", "accepted_text",
     "ChoiceProvider", "ChoiceResponse", "NoulProvider", "NoulResponse",
     "PrimitiveProvider", "ScoreProvider", "ScoreResponse",
+    "TypeSafeProvider",
 ]
 __version__ = "0.1.0"

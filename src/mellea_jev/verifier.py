@@ -5,10 +5,10 @@ import math
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, Literal, Sequence
 
-from .client import (
-    _choice_criteria,
-    _noul_criteria,
-    _score_criteria,
+from .criteria import (
+    normalize_choice_criteria as _choice_criteria,
+    normalize_noul_criteria as _noul_criteria,
+    normalize_score_criteria as _score_criteria,
     probability,
 )
 from .contracts import (

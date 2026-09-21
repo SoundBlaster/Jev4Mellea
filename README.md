@@ -1,5 +1,12 @@
 # Mellea × Jev
 
+[![CI](https://github.com/SoundBlaster/Jev4Mellea/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SoundBlaster/Jev4Mellea/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/github/v/tag/SoundBlaster/Jev4Mellea?label=version)](https://github.com/SoundBlaster/Jev4Mellea/tags)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white)
+![Mellea 0.7.0](https://img.shields.io/badge/Mellea-0.7.0-6f42c1)
+![TypeSafe SDK 0.7.x](https://img.shields.io/badge/TypeSafe%20SDK-0.7.x-6f42c1)
+[![Coverage gate: 80%](https://img.shields.io/badge/coverage%20gate-%E2%89%A580%25-success)](https://github.com/SoundBlaster/Jev4Mellea/blob/main/pyproject.toml#L68-L70)
+
 A small Python adapter that brings TypeSafe Jev's semantic checks into
 [Mellea](https://github.com/generative-computing/mellea). Use Jev to verify
 generated text, classify it into your labels, or rate it on a scale. Mellea

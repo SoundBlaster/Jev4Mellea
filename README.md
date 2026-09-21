@@ -278,7 +278,7 @@ and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/
 - Python **3.11 or newer**.
 - Mellea **0.7.0** for the `Requirement` integration.
 - TypeSafe API access and `TYPESAFE_API_KEY` for live Jev requests. Mocked tests and `make demo` need no key.
-- The adapter uses TypeSafe's HTTPS API through HTTPX; the official TypeSafe Python SDK is not required.
+- The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 
 The Mellea requirement callback is synchronous, so a Jev request can block the

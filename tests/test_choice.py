@@ -1,6 +1,6 @@
 import json
 
-import httpx
+import httpx2
 import pytest
 
 from mellea_jev import (
@@ -35,7 +35,7 @@ def choice_wire(choice="billing", probabilities=None):
 
 def test_choice_serializes_schema_and_parses_selected_class():
     def handler(request):
-        assert request.url == httpx.URL(ENDPOINT)
+        assert request.url == httpx2.URL(ENDPOINT)
         assert request.headers["authorization"] == "Bearer test-key"
         assert json.loads(request.content) == {
             "model": "jev-latest",
@@ -48,11 +48,11 @@ def test_choice_serializes_schema_and_parses_selected_class():
                 }
             },
         }
-        return httpx.Response(
+        return httpx2.Response(
             200, json=choice_wire(), headers={"x-typesafe-request-id": "choice-42"}
         )
 
-    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.choice(
             state={"candidate": "I was charged twice."},
             question="Choose the support category.",
@@ -81,9 +81,9 @@ def test_choice_serializes_structured_json_descriptions():
     def handler(request):
         payload = json.loads(request.content)
         assert payload["questions"]["classification"]["criteria"] == criteria
-        return httpx.Response(200, json=choice_wire())
+        return httpx2.Response(200, json=choice_wire())
 
-    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.choice(
             state={"candidate": "I was charged twice."},
             question="Choose a support category.",
@@ -100,7 +100,7 @@ def test_choice_serializes_structured_json_descriptions():
     ({"billing": ["valid", {"invalid": {"set"}}]}, TypeError),
 ])
 def test_invalid_nested_choice_criteria(criteria, error):
-    with JevClient("test-key", transport=httpx.MockTransport(lambda _: httpx.Response(500))) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(lambda _: httpx2.Response(500))) as client:
         with pytest.raises(error):
             client.choice(state={}, question="Classify.", criteria=criteria)
 
@@ -115,7 +115,7 @@ def test_invalid_nested_choice_criteria(criteria, error):
     choice_wire(probabilities={"billing": float("nan"), "technical": 0.0, "other": 0.0}),
 ])
 def test_malformed_choice_response_fails_closed(body):
-    transport = httpx.MockTransport(lambda _: httpx.Response(
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(
         200,
         content=json.dumps(body, allow_nan=True).encode(),
         headers={"content-type": "application/json"},
@@ -132,14 +132,14 @@ def test_malformed_choice_response_fails_closed(body):
     ({"billing": " "}, ValueError),
 ])
 def test_invalid_choice_criteria(criteria, error):
-    with JevClient("test-key", transport=httpx.MockTransport(lambda _: httpx.Response(500))) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(lambda _: httpx2.Response(500))) as client:
         with pytest.raises(error):
             client.choice(state={}, question="Classify.", criteria=criteria)
 
 
 def test_choice_supports_at_most_255_options():
     options = {f"class_{index}": None for index in range(256)}
-    with JevClient("test-key", transport=httpx.MockTransport(lambda _: httpx.Response(500))) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(lambda _: httpx2.Response(500))) as client:
         with pytest.raises(ValueError, match="255"):
             client.choice(state={}, question="Classify.", criteria=options)
 

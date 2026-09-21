@@ -1,7 +1,7 @@
 """No network, no keys, no Mellea: synthetic Noul responses through real HTTPX."""
 import json
 
-import httpx
+import httpx2
 
 from mellea_jev import JevClient, JevVerifier
 
@@ -9,17 +9,17 @@ from mellea_jev import JevClient, JevVerifier
 def main() -> None:
     values = iter([0.98, 0.02, 0.55])
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.content)
         assert body["questions"]["requirement"]["type"] == "noul"
-        return httpx.Response(200, json={
+        return httpx2.Response(200, json={
             "model": "jev-OFFLINE-FIXTURE",
             "answers": {"requirement": {"type": "noul", "noul": next(values)}},
             "usage": {"input_tokens": 0, "output_tokens": 0},
         })
 
     print("OFFLINE DEMO: probabilities are synthetic fixtures, not model predictions.\n")
-    with JevClient("offline-dummy", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("offline-dummy", transport=httpx2.MockTransport(handler)) as client:
         verifier = JevVerifier(
             client,
             "The museum opening time in the candidate matches the reference.",

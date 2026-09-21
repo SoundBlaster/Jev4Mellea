@@ -1,7 +1,7 @@
 """Exercise real HTTPX serialization/parsing with an in-process mock transport."""
 import json
 
-import httpx
+import httpx2
 import pytest
 
 from mellea_jev import (
@@ -20,7 +20,7 @@ def wire(p=0.97):
 
 
 def transport_for(body):
-    return httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    return httpx2.MockTransport(lambda _: httpx2.Response(200, json=body))
 
 
 def test_exact_request_and_response_contract():
@@ -37,9 +37,9 @@ def test_exact_request_and_response_contract():
             "state": {"candidate": "Привет", "reference": "Hello"},
             "questions": {"requirement": {"type": "noul", "instructions": "Is it a greeting?"}},
         }
-        return httpx.Response(200, json=wire(), headers={"x-typesafe-request-id": "fixture-42"})
+        return httpx2.Response(200, json=wire(), headers={"x-typesafe-request-id": "fixture-42"})
 
-    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.noul(
             state={"candidate": "Привет", "reference": "Hello"},
             question="Is it a greeting?",
@@ -63,9 +63,9 @@ def test_noul_serializes_optional_outcome_criteria():
             "instructions": "Is the message urgent?",
             "criteria": criteria,
         }
-        return httpx.Response(200, json=wire())
+        return httpx2.Response(200, json=wire())
 
-    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.noul(
             state={"candidate": "Please do this ASAP."},
             question="Is the message urgent?",
@@ -81,7 +81,7 @@ def test_noul_serializes_optional_outcome_criteria():
     ({"false": " "}, ValueError),
 ])
 def test_invalid_noul_criteria_rejected_before_request(criteria, error):
-    with JevClient("test-key", transport=httpx.MockTransport(lambda _: pytest.fail("No request expected."))) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(lambda _: pytest.fail("No request expected."))) as client:
         with pytest.raises(error):
             client.noul(state={}, question="Valid?", criteria=criteria)
 
@@ -142,7 +142,7 @@ def test_usage_metadata_is_optional_and_forward_compatible(usage):
 
 @pytest.mark.parametrize("content", [b"not json", b"{", b'{"model":"jev-test","answers":{"requirement":{"type":"noul","noul":NaN}}}'])
 def test_invalid_json_and_non_finite_response(content):
-    transport = httpx.MockTransport(lambda _: httpx.Response(200, content=content))
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, content=content))
     with JevClient("test", transport=transport) as client:
         with pytest.raises(JevProtocolError):
             client.noul(state={}, question="Valid?")
@@ -154,12 +154,12 @@ def test_http_failures_are_not_semantic_failures_or_retried(status):
 
     def handler(request):
         calls.append(request)
-        return httpx.Response(
+        return httpx2.Response(
             status, text="SECRET-CANDIDATE and SECRET-API-KEY",
             headers={"location": "https://different-host.invalid"},
         )
 
-    with JevClient("test", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test", transport=httpx2.MockTransport(handler)) as client:
         with pytest.raises(JevHTTPError) as exc:
             client.noul(state={}, question="Valid?")
     assert exc.value.status_code == status
@@ -167,12 +167,12 @@ def test_http_failures_are_not_semantic_failures_or_retried(status):
     assert len(calls) == 1  # No redirect following or automatic paid retries.
 
 
-@pytest.mark.parametrize("exception", [httpx.ReadTimeout, httpx.ConnectError])
+@pytest.mark.parametrize("exception", [httpx2.ReadTimeout, httpx2.ConnectError])
 def test_transport_errors_are_sanitized(exception):
     def handler(request):
         raise exception("SECRET-TRANSPORT-DIAGNOSTIC", request=request)
 
-    with JevClient("test", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test", transport=httpx2.MockTransport(handler)) as client:
         with pytest.raises(JevError) as exc:
             client.noul(state={}, question="Valid?")
     assert "SECRET" not in str(exc.value)
@@ -197,10 +197,10 @@ def test_environment_key_and_explicit_override(monkeypatch):
 
     def handler(request):
         seen.append(request.headers["authorization"])
-        return httpx.Response(200, json=wire())
+        return httpx2.Response(200, json=wire())
 
     for key in (None, "explicit"):
-        with JevClient(key, transport=httpx.MockTransport(handler)) as client:
+        with JevClient(key, transport=httpx2.MockTransport(handler)) as client:
             client.noul(state={}, question="Valid?")
     assert seen == ["Bearer from-env", "Bearer explicit"]
 
@@ -214,19 +214,34 @@ def test_missing_key(monkeypatch):
 def test_model_override():
     def handler(request):
         assert json.loads(request.content)["model"] == "jev-account-version"
-        return httpx.Response(200, json=wire())
+        return httpx2.Response(200, json=wire())
 
-    with JevClient("test", model="jev-account-version", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test", model="jev-account-version", transport=httpx2.MockTransport(handler)) as client:
         client.noul(state={}, question="Valid?")
 
 
+def test_base_url_environment_cannot_override_official_endpoint(monkeypatch):
+    monkeypatch.setenv("TYPESAFE_BASE_URL", "https://untrusted.example")
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx2.Response(200, json=wire())
+
+    with JevClient("test", transport=httpx2.MockTransport(handler)) as client:
+        client.noul(state={}, question="Valid?")
+
+    assert len(requests) == 1
+    assert str(requests[0].url) == ENDPOINT
+
+
 def test_client_closes_transport():
-    class RecordingTransport(httpx.MockTransport):
+    class RecordingTransport(httpx2.MockTransport):
         closed = False
         def close(self):
             self.closed = True
 
-    transport = RecordingTransport(lambda _: httpx.Response(200, json=wire()))
+    transport = RecordingTransport(lambda _: httpx2.Response(200, json=wire()))
     with JevClient("test", transport=transport):
         assert not transport.closed
     assert transport.closed

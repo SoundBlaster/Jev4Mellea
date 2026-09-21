@@ -1,6 +1,6 @@
 import json
 
-import httpx
+import httpx2
 import pytest
 
 from mellea_jev import (
@@ -32,7 +32,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
 
     def handler(request):
         calls.append(request)
-        assert request.url == httpx.URL(ENDPOINT)
+        assert request.url == httpx2.URL(ENDPOINT)
         assert json.loads(request.content) == {
             "model": "jev-latest",
             "state": {"candidate": "The outage blocks all users."},
@@ -50,7 +50,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
                 },
             },
         }
-        return httpx.Response(200, json={
+        return httpx2.Response(200, json={
             "model": "jev-batch-fixture",
             "usage": {"input_tokens": 120, "output_tokens": 18},
             "answers": {
@@ -71,7 +71,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
             },
         }, headers={"x-typesafe-request-id": "batch-1"})
 
-    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.system_one(
             state={"candidate": "The outage blocks all users."}, questions=questions
         )
@@ -91,7 +91,7 @@ def test_system_one_sends_mixed_questions_in_one_request():
 
 
 def test_system_one_rejects_missing_answers():
-    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json={
         "model": "jev",
         "answers": {"first": {"type": "noul", "noul": 0.9}},
     }))
@@ -112,7 +112,7 @@ def test_system_one_rejects_missing_answers():
     ({"unknown": object()}, TypeError),
 ])
 def test_system_one_validates_question_collection_before_request(questions, error):
-    transport = httpx.MockTransport(lambda _: pytest.fail("Must reject before HTTP."))
+    transport = httpx2.MockTransport(lambda _: pytest.fail("Must reject before HTTP."))
     with JevClient("test-key", transport=transport) as client:
         with pytest.raises(error):
             client.system_one(state={}, questions=questions)

@@ -7,7 +7,7 @@ import asyncio
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-import httpx
+import httpx2
 import pytest
 
 pytest.importorskip("mellea", reason="Install .[mellea,dev] to test the real bridge.")
@@ -22,7 +22,7 @@ pytestmark = pytest.mark.integration
 def test_real_requirement_validate_hook(p, expected):
     context = Mock(spec=Context)
     context.last_output.return_value = SimpleNamespace(value="Hello")
-    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json={
         "model": "jev-integration-fixture",
         "answers": {"requirement": {"type": "noul", "noul": p}},
         "usage": {"input_tokens": 20, "output_tokens": 2},
@@ -42,7 +42,7 @@ def test_real_requirement_validate_hook(p, expected):
 
 @pytest.mark.parametrize("choice,expected", [("billing", True), ("technical", False)])
 def test_real_choice_requirement_validate_hook(choice, expected):
-    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json={
         "model": "jev-choice-integration-fixture",
         "answers": {"classification": {
             "type": "choice",
@@ -70,7 +70,7 @@ def test_real_choice_requirement_validate_hook(choice, expected):
 
 @pytest.mark.parametrize("score,expected", [(0.7, True), (1.5, False)])
 def test_real_score_requirement_validate_hook(score, expected):
-    transport = httpx.MockTransport(lambda _: httpx.Response(200, json={
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json={
         "model": "jev-score-integration-fixture",
         "answers": {"rating": {
             "type": "score",

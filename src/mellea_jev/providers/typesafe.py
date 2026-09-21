@@ -4,9 +4,26 @@ from __future__ import annotations
 import math
 import os
 from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Annotated, Any, Mapping, Sequence
 
-import httpx
+import httpx2
+from pydantic import ConfigDict, Field
+from typesafe_sdk import (
+    Choice as SDKChoice,
+    ChoiceAnswer as SDKChoiceAnswer,
+    Noul as SDKNoul,
+    NoulAnswer as SDKNoulAnswer,
+    RetryPolicy,
+    Score as SDKScore,
+    ScoreAnswer as SDKScoreAnswer,
+    SystemOneResponse as SDKSystemOneResponse,
+    TypeSafeAPIConnectionError,
+    TypeSafeAPIError,
+    TypeSafeAPIResponseValidationError,
+    TypeSafeClient as SDKTypeSafeClient,
+    TypeSafeError,
+    Usage as SDKUsage,
+)
 
 from ..contracts import (
     ChoiceCriteria,
@@ -27,7 +44,8 @@ from ..results import (
     _validate_usage,
 )
 
-ENDPOINT = "https://api.typesafe.ai/v1/systemone"
+BASE_URL = "https://api.typesafe.ai"
+ENDPOINT = f"{BASE_URL}/v1/systemone"
 QUESTION_ID = "requirement"
 CHOICE_QUESTION_ID = "classification"
 SCORE_QUESTION_ID = "rating"
@@ -144,6 +162,28 @@ def _score_response_map(value: object, level_count: int) -> dict[int, Any]:
     return {level: value[str(level)] for level in range(level_count)}
 
 
+class _AdapterScoreAnswer(SDKScoreAnswer):
+    """Retain wire score keys as strings so noncanonical aliases fail closed."""
+
+    probabilities: dict[str, float]
+    legend: dict[str, str]
+
+
+_AdapterAnswer = Annotated[
+    SDKNoulAnswer | SDKChoiceAnswer | _AdapterScoreAnswer,
+    Field(discriminator="type"),
+]
+
+
+class _AdapterSystemOneResponse(SDKSystemOneResponse):
+    """Keep usage metadata optional as it was before adopting the SDK."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
+
+    answers: dict[str, _AdapterAnswer] = Field(default_factory=dict)
+    usage: SDKUsage | None = None
+
+
 def _parse_answer(
     question: TypeSafeQuestion,
     answer: object,
@@ -152,22 +192,20 @@ def _parse_answer(
     request_id: str | None,
     usage: TypeSafeUsage | None,
 ) -> TypeSafeAnswer:
-    if not isinstance(answer, dict):
-        raise ValueError("Each answer must be an object.")
     if isinstance(question, NoulQuestion):
-        if answer.get("type") != "noul":
+        if not isinstance(answer, SDKNoulAnswer):
             raise ValueError("Expected a Noul answer.")
         return NoulResult(
-            p_yes=probability(answer["noul"]), model=model, request_id=request_id,
+            p_yes=probability(answer.noul), model=model, request_id=request_id,
             usage=usage,
         )
     if isinstance(question, ChoiceQuestion):
-        if answer.get("type") != "choice":
+        if not isinstance(answer, SDKChoiceAnswer):
             raise ValueError("Expected a Choice answer.")
         result = ChoiceResult(
-            choice=answer["choice"],
-            confidence=probability(answer["confidence"]),
-            probabilities=answer["probabilities"],
+            choice=answer.choice,
+            confidence=probability(answer.confidence),
+            probabilities=answer.probabilities,
             model=model,
             request_id=request_id,
             usage=usage,
@@ -176,13 +214,13 @@ def _parse_answer(
             raise ValueError("Choice answer labels do not match the requested criteria.")
         return result
     if isinstance(question, ScoreQuestion):
-        if answer.get("type") != "score":
+        if not isinstance(answer, SDKScoreAnswer):
             raise ValueError("Expected a Score answer.")
-        probabilities = _score_response_map(answer["probabilities"], len(question.criteria))
-        legend = _score_response_map(answer["legend"], len(question.criteria))
+        probabilities = _score_answer_map(answer.probabilities, len(question.criteria))
+        legend = _score_answer_map(answer.legend, len(question.criteria))
         result = ScoreResult(
-            score=answer["score"],
-            confidence=probability(answer["confidence"]),
+            score=answer.score,
+            confidence=probability(answer.confidence),
             probabilities=probabilities,
             legend=legend,
             model=model,
@@ -195,11 +233,29 @@ def _parse_answer(
     raise TypeError("Unsupported TypeSafe question.")
 
 
+def _score_answer_map(value: Mapping[str, Any], level_count: int) -> dict[int, Any]:
+    expected_keys = {str(level) for level in range(level_count)}
+    if set(value) != expected_keys:
+        raise ValueError("Score response keys do not match the configured levels.")
+    return {level: value[str(level)] for level in range(level_count)}
+
+
+def _to_sdk_question(question: TypeSafeQuestion) -> SDKNoul | SDKChoice | SDKScore:
+    if isinstance(question, NoulQuestion):
+        return SDKNoul(instructions=question.instructions, criteria=question.criteria)
+    if isinstance(question, ChoiceQuestion):
+        return SDKChoice(instructions=question.instructions, criteria=question.criteria)
+    if isinstance(question, ScoreQuestion):
+        return SDKScore(instructions=question.instructions, criteria=list(question.criteria))
+    raise TypeError("Unsupported TypeSafe question.")
+
+
 class TypeSafeProvider:
     """Synchronous TypeSafe provider with single and batched question methods.
 
-    Only the official HTTPS endpoint is used. ``transport`` is a trusted
-    dependency-injection hook for tests, not an untrusted per-request option.
+    Only the official HTTPS endpoint is used. ``transport`` is the SDK's
+    synchronous transport seam, primarily for tests rather than untrusted
+    per-request configuration.
     There are no hidden retries. HTTP timeout is per operation, not an
     end-to-end wall-clock deadline. Close with a context manager.
     """
@@ -210,7 +266,7 @@ class TypeSafeProvider:
         *,
         model: str = "jev-latest",
         timeout: float = 10.0,
-        transport: httpx.BaseTransport | None = None,
+        transport: httpx2.BaseTransport | None = None,
     ) -> None:
         key = os.environ.get("TYPESAFE_API_KEY", "") if api_key is None else api_key
         if not isinstance(key, str) or not key.strip():
@@ -222,12 +278,19 @@ class TypeSafeProvider:
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive.")
         self.model = model
-        self._http = httpx.Client(
-            headers={"Authorization": f"Bearer {key}", "Accept": "application/json"},
+        http_client = httpx2.Client(
             timeout=timeout,
             follow_redirects=False,
             trust_env=False,
             transport=transport,
+        )
+        self._client = SDKTypeSafeClient(
+            api_key=key,
+            model=model,
+            retry=RetryPolicy(max_retries=0),
+            timeout=timeout,
+            base_url=BASE_URL,
+            http_client=http_client,
         )
 
     def system_one(
@@ -249,55 +312,50 @@ class TypeSafeProvider:
                 raise TypeError("questions must contain NoulQuestion, ChoiceQuestion, or ScoreQuestion values.")
             normalized_questions[question_id] = question
 
+        sdk_questions = {
+            question_id: _to_sdk_question(question)
+            for question_id, question in normalized_questions.items()
+        }
         try:
-            response = self._http.post(
-                ENDPOINT,
-                json={
-                    "model": self.model,
-                    "state": state,
-                    "questions": {
-                        question_id: question.to_payload()
-                        for question_id, question in normalized_questions.items()
-                    },
-                },
+            response = self._client.system_one(
+                state=state,
+                questions=sdk_questions,
+                response_model=_AdapterSystemOneResponse,
             )
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            raise JevHTTPError(exc.response.status_code) from None
-        except httpx.RequestError:
+        except TypeSafeAPIResponseValidationError:
+            raise JevProtocolError(
+                "Malformed TypeSafe response; refusing to return answers."
+            ) from None
+        except TypeSafeAPIError as exc:
+            raise JevHTTPError(exc.status) from None
+        except TypeSafeAPIConnectionError:
             raise JevError("TypeSafe transport failed; validation did not complete.") from None
+        except TypeSafeError:
+            raise JevError("TypeSafe SDK failed; validation did not complete.") from None
 
         try:
-            data = response.json()
-            if not isinstance(data, dict) or not isinstance(data.get("answers"), dict):
-                raise ValueError
-            raw_answers = data["answers"]
-            if set(raw_answers) != set(normalized_questions):
+            if set(response.answers) != set(normalized_questions):
                 raise ValueError("Answer IDs do not match the request.")
-            model = data["model"]
-            raw_usage = data.get("usage")
-            if raw_usage is None:
+            if response.usage is None:
                 usage = None
-            elif isinstance(raw_usage, dict):
-                usage = TypeSafeUsage(
-                    input_tokens=raw_usage.get("input_tokens"),
-                    output_tokens=raw_usage.get("output_tokens"),
-                )
             else:
-                raise ValueError("Usage metadata must be an object or null.")
-            request_id = response.headers.get("x-typesafe-request-id")
+                usage = TypeSafeUsage(
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                )
+            request_id = response.raw_http_response.headers.get("x-typesafe-request-id")
             answers = {
                 question_id: _parse_answer(
                     question,
-                    raw_answers[question_id],
-                    model=model,
+                    response.answers[question_id],
+                    model=response.model,
                     request_id=request_id,
                     usage=usage,
                 )
                 for question_id, question in normalized_questions.items()
             }
-            return SystemOneResult(answers, model, request_id, usage)
-        except (KeyError, TypeError, ValueError, OverflowError):
+            return SystemOneResult(answers, response.model, request_id, usage)
+        except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
             raise JevProtocolError("Malformed TypeSafe response; refusing to return answers.") from None
 
     def noul(
@@ -348,7 +406,7 @@ class TypeSafeProvider:
         return result
 
     def close(self) -> None:
-        self._http.close()
+        self._client.close()
 
     def __enter__(self) -> TypeSafeProvider:
         return self

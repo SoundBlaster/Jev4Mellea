@@ -13,22 +13,25 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
 1. **Complete (PR #11).** Define small provider-neutral Noul, Choice, and Score
    contracts. Mellea helpers depend on these contracts, and callers can
    implement a single primitive without inheriting from package classes.
-2. **Complete (PR #12).** Isolate TypeSafe request/response serialization in a
-   TypeSafe provider while retaining `JevClient` as the compatible public entry
-   point.
-3. **In progress.** Implement a Laya-MLX provider using its local System One
+2. **Complete (PRs #12 and #14).** Isolate TypeSafe request/response handling
+   behind the official Python SDK while retaining `JevClient` as the compatible
+   public entry point.
+3. **Complete (PR #13).** Implement a Laya-MLX provider using its local System One
    API, with the dependency and model loading kept optional. Exercise the
    contracts against this second API and document differences such as its
    entropy-based Choice confidence.
-4. Consider configuration-based selection or an entry-point plugin mechanism
-   only after multiple maintained providers demonstrate the need.
+4. **Deferred.** Keep provider construction explicit. Revisit configuration or
+   entry-point discovery if client projects need dynamic provider selection and
+   there is clear ownership for maintaining the integration.
 
-Provider contracts are ready for broader use when a second provider can satisfy
-them without importing TypeSafe wire models and existing Jev callers remain
-compatible. Plugin discovery is deliberately deferred until provider count and
-maintenance ownership justify it.
+The second provider now exercises the shared contracts without importing
+TypeSafe wire models, while existing Jev callers keep `JevClient`. This meets
+the current portability milestone; it does not by itself establish a need for
+plugin discovery.
 
-## In progress — Choice support (PR #3)
+## Completed primitive capabilities
+
+### Choice support (PR #3)
 
 - Classify text into a configured set of Choice labels.
 - Expose the selected label, confidence, probabilities, model, and request ID.
@@ -37,40 +40,56 @@ maintenance ownership justify it.
 - Exercise the real Mellea `Requirement.validate` contract with mocked Jev HTTP
   responses; keep live Jev checks opt-in.
 
-## In progress — Score support
+### Score support (PR #4)
 
 - Add Jev `Score` support for ordered scales, with response validation and a
   Mellea `Requirement` bridge for configurable inclusive score bounds.
 
-## In progress — Batched questions
+### Batched questions (PR #6)
 
 - Support multiple named Noul, Choice, and Score questions in one TypeSafe
   request; preserve typed per-question results and fail closed on mismatched IDs.
 
-## Next — Broaden primitive criteria
+### Broaden primitive criteria (PRs #7 and #8)
 
 - Accept the structured Choice criteria forms supported by the TypeSafe API.
 - Allow callers to provide Noul criteria in addition to the current instruction.
 
-## Then — Make behavior observable and measurable
+## Completed observability foundations
 
-- Expose available TypeSafe usage metadata, including token counts, without
-  making it part of a validation decision.
-- Add explicitly enabled live smoke checks for Noul and Choice, with clear
-  billing and data-submission notices.
-- Measure false-acceptance, false-rejection, and uncertain rates on labeled
-  task-specific examples; document that thresholds remain caller policy.
-- Publish a tested compatibility matrix for supported Python and Mellea
-  versions.
+- **Usage metadata (PR #9):** expose available TypeSafe token counts without
+  making them part of a validation decision.
+- **Live smoke checks:** Noul and Choice checks require explicit opt-in and an
+  API key; the README describes billing and data-submission implications.
+
+## Next — Measure quality on labeled examples
+
+- Define a task-specific, non-sensitive labeled dataset and record its scope,
+  expected outcome, and acceptance policy.
+- Add a repeatable evaluation runner that reports false-acceptance,
+  false-rejection, and uncertain rates by provider, model, and threshold.
+- Keep live requests explicitly enabled. Publish quality claims only with the
+  dataset version, sample counts, provider/model, thresholds, and limitations;
+  thresholds remain caller policy.
+
+## Then — Publish a compatibility matrix
+
+- The project declares Python 3.11+ and pins the Mellea integration to 0.7.0;
+  CI currently exercises Python 3.11 and Mellea 0.7.0.
+- Decide which additional Python and Mellea versions to support, test those
+  combinations in CI, and document only combinations that pass.
 
 ## Before production use
 
 - Decide whether an async client and a Mellea integration point that can await
   network I/O are needed for target deployments.
-- Define bounded timeout, rate-limit, and retry behavior with request billing
-  and idempotency in mind; never assume cancellation stops server-side work.
-- Document deployment controls for sensitive text, logging, redaction, and
-  operational telemetry.
+- The TypeSafe provider already uses a configurable finite timeout and disables
+  automatic retries. Define any provider-specific rate-limit or idempotency
+  policy without assuming that cancellation stops server-side work.
+- Document deployment responsibilities for sensitive text, retention,
+  redaction, application logging, and operational telemetry. The README already
+  explains that candidate text and references are sent to TypeSafe and that the
+  adapter does not log request bodies or API keys.
 - Validate latency, cost, and classification quality against each deployment's
   workload and acceptance policy.
 

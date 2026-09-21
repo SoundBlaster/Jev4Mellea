@@ -391,6 +391,7 @@ branch-aware coverage. Live service requests remain opt-in and are not part of C
 - [API notes and source references](API_NOTES.md)
 - [Test report and validation limits](TEST_REPORT.md)
 - [Development commands](Makefile)
+- [Release process](RELEASING.md)
 - [Roadmap](roadmap.md)
 - [Offline demo](examples/offline_demo.py)
 - [Live Jev example](examples/live_check.py)

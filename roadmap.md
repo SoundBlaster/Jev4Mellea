@@ -62,15 +62,17 @@ plugin discovery.
 - **Live smoke checks:** Noul and Choice checks require explicit opt-in and an
   API key; the README describes billing and data-submission implications.
 
-## Next — Measure quality on labeled examples
+## Completed — Measure quality on labeled examples
 
-- Define a task-specific, non-sensitive labeled dataset and record its scope,
-  expected outcome, and acceptance policy.
-- Add a repeatable evaluation runner that reports false-acceptance,
-  false-rejection, and uncertain rates by provider, model, and threshold.
-- Keep live requests explicitly enabled. Publish quality claims only with the
-  dataset version, sample counts, provider/model, thresholds, and limitations;
-  thresholds remain caller policy.
+- Define versioned, task-specific, non-sensitive JSONL examples with explicit
+  expected accept/reject outcomes; include a small museum-opening example as a
+  format demonstration, not a quality benchmark.
+- Add an evaluation runner that reports false-acceptance, false-rejection, and
+  uncertain rates by provider, returned model, and threshold pair. Saved raw
+  predictions allow offline threshold comparisons without another request.
+- Require `--live` before provider inference. Publish quality claims only with
+  the dataset version, sample counts, provider/model, thresholds, metric
+  denominators, and limitations; thresholds remain caller policy.
 
 ## Then — Publish a compatibility matrix
 

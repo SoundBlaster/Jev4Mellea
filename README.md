@@ -280,6 +280,63 @@ so calibrate `minimum_confidence` for the selected backend rather than copying
 a threshold from another provider. See the [Laya-MLX API and platform notes](https://github.com/mizorewww/laya-mlx)
 and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/laya_mlx/common.py).
 
+### Evaluate a provider on labeled examples
+
+`examples/evaluate.py` reports false-acceptance, false-rejection, and uncertain
+rates for every provider, returned model, and threshold pair. The checked-in
+museum example is a small format demonstration, not a quality benchmark. Add
+representative, non-sensitive examples for your own task before drawing quality
+conclusions.
+
+The dataset is versioned JSONL: the first line describes the positive Noul
+requirement; each following line labels one candidate as `accept` or `reject`.
+An optional `reference` is sent with that candidate. For example:
+
+```jsonl
+{"type":"dataset","format_version":1,"name":"support-policy","version":"1.0.0","requirement":"The answer follows the refund policy."}
+{"type":"example","id":"in-policy","candidate":"...","reference":"...","expected":"accept"}
+{"type":"example","id":"out-of-policy","candidate":"...","reference":"...","expected":"reject"}
+```
+
+Inference is opt-in. This command sends each example to Jev and saves the raw
+predictions, so it may incur charges and transmits dataset text to TypeSafe:
+
+```bash
+python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
+  --live --provider typesafe --model jev-latest \
+  --threshold 0.10,0.90 --save-predictions /tmp/museum-predictions.jsonl
+```
+
+To compare multiple threshold pairs or reproduce a report, load the saved
+predictions offline. No provider is constructed and no request is sent:
+
+```bash
+python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
+  --predictions /tmp/museum-predictions.jsonl \
+  --threshold 0.10,0.90 --threshold 0.20,0.80
+```
+
+Use `--live --provider laya --model aac6fef/laya-mlx` to run the same labeled
+examples through Laya-MLX on a supported Apple Silicon setup. Loading that
+checkpoint may download model weights. Prediction snapshots contain `p_yes`,
+provider, and returned model; keep them with the dataset version. The report
+also includes the SHA-256 of the exact dataset file, so a changed file cannot be
+silently paired with old predictions. A snapshot records the provider, returned
+model, and raw probability for each example:
+
+```jsonl
+{"type":"prediction_set","format_version":1,"dataset":"support-policy","dataset_version":"1.0.0","dataset_sha256":"..."}
+{"type":"prediction","id":"in-policy","provider":"typesafe","model":"jev-1.13.0","p_yes":0.98}
+```
+
+The report defines false-acceptance rate as false accepts divided by expected
+rejects, false-rejection rate as false rejects divided by expected accepts, and
+uncertain rate as uncertain predictions divided by all examples. It also
+reports counts and denominators; missing classes are rejected during dataset
+loading. Always publish the dataset version, sample count, provider/model,
+thresholds, and limitations alongside any observed quality rates. Do not commit
+private or sensitive examples or prediction snapshots.
+
 ## Requirements and compatibility
 
 - Python **3.11 or newer**.

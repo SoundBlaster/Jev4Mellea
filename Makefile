@@ -4,7 +4,7 @@ PY := $(VENV)/bin/python
 OLLAMA_MODEL ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check mellea-ollama diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check mellea-ollama diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -22,6 +22,7 @@ help: ## Show the available development commands
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'diff-check       Check staged and unstaged changes for whitespace errors' \
+	  'committed-diff-check Check HEAD against its first parent for whitespace errors' \
 	  'clean            Remove the virtualenv and generated Python/test build files'
 
 install: $(VENV)/.installed ## Create the virtual environment and install dependencies
@@ -72,6 +73,9 @@ mellea-ollama: $(VENV)/.installed ## Run the Mellea + Ollama example; Jev reques
 
 diff-check: ## Check staged and unstaged changes for whitespace errors
 	git diff --check HEAD
+
+committed-diff-check: ## Check the latest committed patch for whitespace errors
+	git diff --check HEAD^1 HEAD
 
 clean: ## Remove generated local files
 	rm -rf $(VENV) .pytest_cache .mypy_cache .ruff_cache .coverage build dist src/*.egg-info

@@ -19,7 +19,7 @@ def probability(value: object) -> float:
     if type(value) not in (int, float):
         raise ValueError("Expected a finite number in [0, 1], not a boolean.")
     number = cast(int | float, value)
-    if not math.isfinite(number) or not 0 <= number <= 1:
+    if not 0 <= number <= 1 or not math.isfinite(number):
         raise ValueError("Expected a finite number in [0, 1], not a boolean.")
     return float(number)
 

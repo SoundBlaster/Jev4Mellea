@@ -208,9 +208,14 @@ def collect_predictions(
     provider_name: str,
 ) -> list[Prediction]:
     """Call a provider once per example and retain raw P(yes) for threshold sweeps."""
-    verifier = JevVerifier(provider, dataset.requirement, criteria=dataset.criteria)
     predictions: list[Prediction] = []
     for example in dataset.examples:
+        verifier = JevVerifier(
+            provider,
+            dataset.requirement,
+            reference=example.reference,
+            criteria=dataset.criteria,
+        )
         verdict = verifier.evaluate(example.candidate)
         if verdict.p_yes is None or verdict.model is None:
             raise RuntimeError(f"Provider returned no judgment for example '{example.id}'.")

@@ -2,9 +2,14 @@ PYTHON ?= python3.13
 VENV ?= .venv
 PY := $(VENV)/bin/python
 OLLAMA_MODEL ?=
+EVAL_DATASET ?= examples/evaluation/museum_opening.jsonl
+EVAL_PREDICTIONS ?=
+EVAL_PROVIDER ?= typesafe
+EVAL_MODEL ?=
+EVAL_THRESHOLD ?= 0.10,0.90
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check mellea-ollama diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -21,6 +26,8 @@ help: ## Show the available development commands
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
+	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
+	  'live-evaluate    Explicitly run the labeled dataset through a model' \
 	  'diff-check       Check staged and unstaged changes for whitespace errors' \
 	  'committed-diff-check Check HEAD against its first parent for whitespace errors' \
 	  'clean            Remove the virtualenv and generated Python/test build files'
@@ -70,6 +77,13 @@ mellea-ollama: $(VENV)/.installed ## Run the Mellea + Ollama example; Jev reques
 	@test -n '$(OLLAMA_MODEL)' || { echo 'Set OLLAMA_MODEL to a model already installed in Ollama.' >&2; exit 2; }
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	OLLAMA_MODEL='$(OLLAMA_MODEL)' $(PY) examples/mellea_ollama.py
+
+evaluate: $(VENV)/.installed ## Compute metrics from saved predictions; performs no inference
+	@test -n '$(EVAL_PREDICTIONS)' || { echo 'Set EVAL_PREDICTIONS to a saved prediction JSONL file.' >&2; exit 2; }
+	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --predictions '$(EVAL_PREDICTIONS)' --threshold '$(EVAL_THRESHOLD)'
+
+live-evaluate: $(VENV)/.installed ## Explicitly evaluate labeled examples; may send text or download a local model
+	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --live --provider '$(EVAL_PROVIDER)' $(if $(EVAL_MODEL),--model '$(EVAL_MODEL)',) --threshold '$(EVAL_THRESHOLD)' $(if $(EVAL_PREDICTIONS),--save-predictions '$(EVAL_PREDICTIONS)',)
 
 diff-check: ## Check staged and unstaged changes for whitespace errors
 	git diff --check HEAD

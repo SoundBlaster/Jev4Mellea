@@ -1,0 +1,5 @@
+{"type":"dataset","format_version":1,"name":"museum-opening-time","version":"1.0.0","requirement":"The candidate gives the museum's opening time correctly according to the reference."}
+{"type":"example","id":"correct-time","candidate":"The museum opens at 10:00.","reference":"The museum opens at 10:00 and closes at 18:00.","expected":"accept"}
+{"type":"example","id":"wrong-time","candidate":"The museum opens at 11:00.","reference":"The museum opens at 10:00 and closes at 18:00.","expected":"reject"}
+{"type":"example","id":"correct-with-context","candidate":"Doors open at ten in the morning.","reference":"The museum opens at 10:00 and closes at 18:00.","expected":"accept"}
+{"type":"example","id":"closing-time-confusion","candidate":"The museum opens at 18:00.","reference":"The museum opens at 10:00 and closes at 18:00.","expected":"reject"}

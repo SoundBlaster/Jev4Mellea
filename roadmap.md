@@ -74,12 +74,12 @@ plugin discovery.
   the dataset version, sample counts, provider/model, thresholds, metric
   denominators, and limitations; thresholds remain caller policy.
 
-## Then — Publish a compatibility matrix
+## Completed — Compatibility matrix (PR #22)
 
-- The project declares Python 3.11+ and pins the Mellea integration to 0.7.0;
-  CI currently exercises Python 3.11 and Mellea 0.7.0.
-- Decide which additional Python and Mellea versions to support, test those
-  combinations in CI, and document only combinations that pass.
+- The project declares Python 3.11+ and pins the Mellea integration to 0.7.0.
+- CI runs the quality and test suites on Python 3.11, 3.12, 3.13, and 3.14
+  with Mellea 0.7.0. Other Mellea versions are not currently declared
+  compatible.
 
 ## Before production use
 

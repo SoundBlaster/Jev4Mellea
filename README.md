@@ -346,6 +346,18 @@ private or sensitive examples or prediction snapshots.
 - The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 
+The CI compatibility matrix runs the package checks with these combinations:
+
+| Python | Mellea integration |
+| --- | --- |
+| 3.11 | 0.7.0 |
+| 3.12 | 0.7.0 |
+| 3.13 | 0.7.0 |
+| 3.14 | 0.7.0 |
+
+The Mellea extra is pinned to 0.7.0; other Mellea versions are not currently
+declared compatible.
+
 The Mellea requirement callback is synchronous, so a Jev request can block the
 event loop. This package does not provide an async client. If sampling has
 already seen a failed candidate, Mellea may return a failed sampling result

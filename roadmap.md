@@ -13,11 +13,13 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
 1. **Complete (PR #11).** Define small provider-neutral Noul, Choice, and Score
    contracts. Mellea helpers depend on these contracts, and callers can
    implement a single primitive without inheriting from package classes.
-2. **In progress.** Isolate TypeSafe request/response serialization in a
+2. **Complete (PR #12).** Isolate TypeSafe request/response serialization in a
    TypeSafe provider while retaining `JevClient` as the compatible public entry
    point.
-3. Implement a second provider integration to exercise the contracts against a
-   different API and record any unavoidable semantic differences.
+3. **In progress.** Implement a Laya-MLX provider using its local System One
+   API, with the dependency and model loading kept optional. Exercise the
+   contracts against this second API and document differences such as its
+   entropy-based Choice confidence.
 4. Consider configuration-based selection or an entry-point plugin mechanism
    only after multiple maintained providers demonstrate the need.
 

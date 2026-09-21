@@ -37,7 +37,8 @@ from .contracts import (
     ScoreProvider,
     ScoreResponse,
 )
-from .providers import TypeSafeProvider
+from .providers import LayaAgent, LayaProtocolError, LayaProvider, TypeSafeProvider
+from .results import UsageMetadata
 
 __all__ = [
     "ChoiceCriteria",
@@ -60,5 +61,6 @@ __all__ = [
     "ChoiceProvider", "ChoiceResponse", "NoulProvider", "NoulResponse",
     "PrimitiveProvider", "ScoreProvider", "ScoreResponse",
     "TypeSafeProvider",
+    "LayaAgent", "LayaProvider", "LayaProtocolError", "UsageMetadata",
 ]
 __version__ = "0.1.0"

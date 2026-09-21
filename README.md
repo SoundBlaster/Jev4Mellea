@@ -241,12 +241,45 @@ with JevClient() as jev:
 `accepted_text()` checks the final validation state before returning text. Do
 not return `sampled.result` directly after failed or incomplete sampling.
 
+### Run checks with local Laya-MLX
+
+On Apple Silicon macOS, install the optional backend and load a Laya checkpoint.
+The first load may download the model weights; inference then runs locally.
+
+```bash
+pip install -e '.[laya]'
+```
+
+```python
+import laya_mlx
+from mellea_jev import JevClassifier
+from mellea_jev.providers import LayaProvider
+
+agent = laya_mlx.load("aac6fef/laya-mlx")
+classifier = JevClassifier(
+    LayaProvider(agent),
+    "Which team should handle this request?",
+    criteria={"billing": "Payments and refunds", "technical": "Bugs and outages"},
+)
+print(classifier.classify("I was charged twice.").choice)
+```
+
+`LayaProvider` accepts an already loaded agent and does not import Laya or MLX
+when the base package is imported. It maps Laya's Noul, Choice, and Score
+answers into the same response contracts used by `JevClient`. Review the
+selected model checkpoint's license separately; the Laya-MLX runtime is
+Apache-2.0 licensed. Laya computes Choice confidence from normalized entropy,
+so calibrate `minimum_confidence` for the selected backend rather than copying
+a threshold from another provider. See the [Laya-MLX API and platform notes](https://github.com/mizorewww/laya-mlx)
+and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/laya_mlx/common.py).
+
 ## Requirements and compatibility
 
 - Python **3.11 or newer**.
 - Mellea **0.7.0** for the `Requirement` integration.
 - TypeSafe API access and `TYPESAFE_API_KEY` for live Jev requests. Mocked tests and `make demo` need no key.
 - The adapter uses TypeSafe's HTTPS API through HTTPX; the official TypeSafe Python SDK is not required.
+- `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 
 The Mellea requirement callback is synchronous, so a Jev request can block the
 event loop. This package does not provide an async client. If sampling has

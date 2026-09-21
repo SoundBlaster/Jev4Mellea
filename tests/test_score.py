@@ -1,6 +1,6 @@
 import json
 
-import httpx
+import httpx2
 import pytest
 
 from mellea_jev import JevClient, JevProtocolError, ScoreResult
@@ -27,7 +27,7 @@ def score_wire(*, score=0.7, confidence=0.6, probabilities=None, legend=None):
 
 def test_score_serializes_ordered_levels_and_parses_weighted_result():
     def handler(request):
-        assert request.url == httpx.URL(ENDPOINT)
+        assert request.url == httpx2.URL(ENDPOINT)
         assert json.loads(request.content) == {
             "model": "jev-latest",
             "state": {"candidate": "The export button crashes in Safari."},
@@ -39,11 +39,11 @@ def test_score_serializes_ordered_levels_and_parses_weighted_result():
                 }
             },
         }
-        return httpx.Response(
+        return httpx2.Response(
             200, json=score_wire(), headers={"x-typesafe-request-id": "score-42"}
         )
 
-    with JevClient("test-key", transport=httpx.MockTransport(handler)) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.score(
             state={"candidate": "The export button crashes in Safari."},
             question="How severe is the bug?",
@@ -64,7 +64,7 @@ def test_score_serializes_ordered_levels_and_parses_weighted_result():
     ([f"level {i}" for i in range(11)], ValueError),
 ])
 def test_invalid_score_criteria(criteria, error):
-    with JevClient("test-key", transport=httpx.MockTransport(lambda _: httpx.Response(500))) as client:
+    with JevClient("test-key", transport=httpx2.MockTransport(lambda _: httpx2.Response(500))) as client:
         with pytest.raises(error):
             client.score(state={}, question="Rate severity.", criteria=criteria)
 
@@ -80,7 +80,7 @@ def test_invalid_score_criteria(criteria, error):
     score_wire(score=float("nan")),
 ])
 def test_malformed_score_response_fails_closed(body):
-    transport = httpx.MockTransport(lambda _: httpx.Response(
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(
         200,
         content=json.dumps(body, allow_nan=True).encode(),
         headers={"content-type": "application/json"},
@@ -96,7 +96,7 @@ def test_integer_equivalent_wire_keys_fail_before_conversion():
         probabilities={"0": 2, "00": 0.5, "1": 0.5},
         legend={"0": "Low", "1": "High"},
     )
-    transport = httpx.MockTransport(lambda _: httpx.Response(200, json=body))
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json=body))
     with JevClient("test-key", transport=transport) as client:
         with pytest.raises(JevProtocolError):
             client.score(

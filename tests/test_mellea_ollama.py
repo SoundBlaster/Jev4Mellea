@@ -6,7 +6,7 @@ Never sends requests to TypeSafe and does not need TYPESAFE_API_KEY.
 import json
 import os
 
-import httpx
+import httpx2
 import pytest
 
 pytest.importorskip("mellea", reason="Install .[mellea,dev] for the local integration test.")
@@ -34,11 +34,11 @@ def test_real_mellea_ollama_repair_with_mock_jev():
     requests = []
     decisions = []
 
-    def mock_jev(request: httpx.Request) -> httpx.Response:
+    def mock_jev(request: httpx2.Request) -> httpx2.Response:
         requests.append(json.loads(request.content))
         p_yes = 0.02 if len(requests) == 1 else 0.98
         decisions.append(p_yes)
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "model": "jev-local-fixture",
@@ -48,7 +48,7 @@ def test_real_mellea_ollama_repair_with_mock_jev():
         )
 
     session = MelleaSession(backend=OllamaModelBackend(model_id=model))
-    with JevClient("local-test-key", transport=httpx.MockTransport(mock_jev)) as client:
+    with JevClient("local-test-key", transport=httpx2.MockTransport(mock_jev)) as client:
         verifier = JevVerifier(
             client,
             "The candidate states the museum opening time supported by the reference.",

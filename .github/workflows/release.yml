@@ -3,6 +3,7 @@ name: Release package
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -22,11 +23,20 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Verify tag is on main and matches the package version
+      - name: Verify release tag or dry-run branch
         env:
+          EVENT_NAME: ${{ github.event_name }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "Manual dry runs must be started from main." >&2
+              exit 1
+            fi
+            echo "Manual dry run on main; no release tag will be published."
+          else
+            git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          fi
           python - <<'PY'
           import os
           import tomllib
@@ -35,12 +45,14 @@ jobs:
           with Path("pyproject.toml").open("rb") as project_file:
               package_version = tomllib.load(project_file)["project"]["version"]
 
-          tag_version = os.environ["RELEASE_TAG"].removeprefix("v")
-          if tag_version != package_version:
-              raise SystemExit(
-                  f"Tag version {tag_version!r} does not match pyproject.toml "
-                  f"version {package_version!r}."
-              )
+          if os.environ["EVENT_NAME"] != "workflow_dispatch":
+              tag_version = os.environ["RELEASE_TAG"].removeprefix("v")
+              if tag_version != package_version:
+                  raise SystemExit(
+                      f"Tag version {tag_version!r} does not match pyproject.toml "
+                      f"version {package_version!r}."
+                  )
+          print(f"Package version: {package_version}")
           PY
 
   compatibility:
@@ -63,8 +75,44 @@ jobs:
 
       - name: Build source and wheel distributions
         run: |
-          python -m pip install --upgrade build
+          python -m pip install --upgrade build twine
           python -m build
+
+      - name: Verify distributions and wheel installation
+        run: |
+          python -m twine check dist/*
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          distributions = list(Path("dist").iterdir())
+          wheels = [path for path in distributions if path.suffix == ".whl"]
+          sdists = [path for path in distributions if path.name.endswith(".tar.gz")]
+          if len(wheels) != 1 or len(sdists) != 1 or len(distributions) != 2:
+              raise SystemExit(f"Expected one wheel and one sdist, found: {distributions}")
+
+          expected_files = {"mellea_jev/__init__.py", "mellea_jev/py.typed"}
+          with zipfile.ZipFile(wheels[0]) as wheel:
+              wheel_files = set(wheel.namelist())
+          if not expected_files <= wheel_files:
+              raise SystemExit(f"Wheel is missing package files: {expected_files - wheel_files}")
+
+          with tarfile.open(sdists[0], "r:gz") as sdist:
+              sdist_files = set(sdist.getnames())
+          expected_sdist_files = {
+              f"{sdists[0].stem.removesuffix('.tar')}/src/{path}"
+              for path in expected_files
+          }
+          if not expected_sdist_files <= sdist_files:
+              raise SystemExit(
+                  f"Source distribution is missing package files: "
+                  f"{expected_sdist_files - sdist_files}"
+              )
+          print("Wheel and source distribution contain the typed package.")
+          PY
+          python -m pip install dist/*.whl
+          python -c 'import mellea_jev; print(f"Installed mellea_jev {mellea_jev.__version__}")'
 
       - name: Save built distributions
         uses: actions/upload-artifact@v4
@@ -75,6 +123,7 @@ jobs:
 
   publish:
     name: publish to PyPI
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     environment:

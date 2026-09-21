@@ -42,3 +42,11 @@ and [Publishing with a Trusted Publisher](https://docs.pypi.org/trusted-publishe
 
 The workflow only publishes on `v*` tags. It does not send requests to Jev;
 live API checks remain opt-in and billable.
+
+## Preflight without publishing
+
+Before configuring the PyPI Trusted Publisher, the release workflow can be
+started manually from the `main` branch in GitHub Actions. This dry run checks
+the compatibility matrix, builds both distributions, validates their metadata
+and package contents, and installs and imports the wheel. It uploads the
+distributions as a workflow artifact but does not publish them to PyPI.

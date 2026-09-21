@@ -286,7 +286,8 @@ and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/
 rates for every provider, returned model, and threshold pair. The checked-in
 museum example is a small format demonstration, not a quality benchmark. Add
 representative, non-sensitive examples for your own task before drawing quality
-conclusions.
+conclusions. See the [initial live Jev and Laya run](examples/evaluation/live-benchmark-2026-09-21.md)
+for a four-example smoke benchmark and its limitations.
 
 The dataset is versioned JSONL: the first line describes the positive Noul
 requirement; each following line labels one candidate as `accept` or `reject`.

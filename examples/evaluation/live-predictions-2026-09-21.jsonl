@@ -1,0 +1,9 @@
+{"type":"prediction_set","format_version":1,"dataset":"museum-opening-time","dataset_version":"1.0.0","dataset_sha256":"a7d79ab5facd2648460c48b52f900b2ca8f5ebaf56e196107e357f4d2492ca3f"}
+{"type":"prediction","id":"correct-time","provider":"typesafe","model":"jev-1.13.0","p_yes":0.6}
+{"type":"prediction","id":"wrong-time","provider":"typesafe","model":"jev-1.13.0","p_yes":0.56}
+{"type":"prediction","id":"correct-with-context","provider":"typesafe","model":"jev-1.13.0","p_yes":0.59}
+{"type":"prediction","id":"closing-time-confusion","provider":"typesafe","model":"jev-1.13.0","p_yes":0.43}
+{"type":"prediction","id":"correct-time","provider":"laya","model":"laya-rl-agent","p_yes":0.5639}
+{"type":"prediction","id":"wrong-time","provider":"laya","model":"laya-rl-agent","p_yes":0.5052}
+{"type":"prediction","id":"correct-with-context","provider":"laya","model":"laya-rl-agent","p_yes":0.5484}
+{"type":"prediction","id":"closing-time-confusion","provider":"laya","model":"laya-rl-agent","p_yes":0.3553}

@@ -3,10 +3,11 @@
 The optional ``laya-mlx`` package is never imported here. Pass an already loaded
 agent, which also keeps tests independent of MLX and model checkpoint downloads.
 """
+
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any, Protocol, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any, Protocol
 
 from ..contracts import ChoiceCriteria, NoulCriteria
 from ..criteria import (
@@ -113,9 +114,7 @@ class LayaProvider:
             kind="noul", state=state, question=question, criteria=normalized
         )
         try:
-            return NoulResult(
-                p_yes=probability(answer["noul"]), model=model, usage=usage
-            )
+            return NoulResult(p_yes=probability(answer["noul"]), model=model, usage=usage)
         except (KeyError, TypeError, ValueError, OverflowError):
             raise LayaProtocolError("Laya returned a malformed Noul probability.") from None
 
@@ -160,7 +159,10 @@ class LayaProvider:
         try:
             raw_probabilities = answer["probabilities"]
             raw_legend = answer["legend"]
-            if not isinstance(raw_probabilities, Mapping) or set(raw_probabilities) != expected_keys:
+            if (
+                not isinstance(raw_probabilities, Mapping)
+                or set(raw_probabilities) != expected_keys
+            ):
                 raise ValueError
             if not isinstance(raw_legend, Mapping) or set(raw_legend) != expected_keys:
                 raise ValueError
@@ -168,9 +170,7 @@ class LayaProvider:
                 raw_probabilities,
                 [str(level) for level in range(len(normalized))],
             )
-            probabilities = {
-                int(level): value for level, value in probabilities_by_key.items()
-            }
+            probabilities = {int(level): value for level, value in probabilities_by_key.items()}
             legend = {int(level): raw_legend[level] for level in raw_legend}
             if legend != dict(enumerate(normalized)):
                 raise ValueError

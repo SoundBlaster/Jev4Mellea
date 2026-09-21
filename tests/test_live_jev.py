@@ -1,9 +1,10 @@
 """Optional, potentially billable smoke tests. Never run just because a key exists."""
+
 import os
 
 import pytest
 
-from mellea_jev import JevClient, JevClassifier, JevVerifier
+from mellea_jev import JevClassifier, JevClient, JevVerifier
 
 
 @pytest.mark.live

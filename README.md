@@ -303,9 +303,13 @@ existing compatible name, or import `TypeSafeProvider` explicitly from
 
 ```bash
 make help    # list the repository commands
-make check   # run the local test suite and whitespace check
+make check   # run lint, formatting, type, test, coverage, and whitespace checks
 make demo    # run without API keys or network access
 ```
+
+GitHub CI runs the same `make check` gate: Ruff linting and formatting,
+strict Mypy checks, a maximum cyclomatic complexity of 16, and at least 80%
+branch-aware coverage. Live service requests remain opt-in and are not part of CI.
 
 - [API notes and source references](API_NOTES.md)
 - [Test report and validation limits](TEST_REPORT.md)

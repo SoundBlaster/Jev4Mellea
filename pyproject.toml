@@ -17,7 +17,12 @@ dependencies = [
 
 [project.optional-dependencies]
 mellea = ["mellea==0.7.0"]
-dev = ["pytest>=8.3,<10"]
+dev = [
+    "mypy>=1.15,<2",
+    "pytest>=8.3,<10",
+    "pytest-cov>=6,<8",
+    "ruff>=0.16,<0.17",
+]
 laya = ["laya-mlx>=0.1.0,<0.2.0; sys_platform == 'darwin' and platform_machine == 'arm64'"]
 
 [tool.setuptools.packages.find]
@@ -34,3 +39,33 @@ markers = [
     "integration: requires the real Mellea distribution, but no model server",
     "live: explicit opt-in; sends potentially billable requests to TypeSafe",
 ]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP", "C90", "RUF"]
+ignore = ["RUF002", "RUF022"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 16
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+files = ["src/mellea_jev"]
+follow_imports_for_stubs = true
+
+[[tool.mypy.overrides]]
+module = ["numpy", "numpy.*"]
+follow_imports = "skip"
+
+[tool.coverage.run]
+branch = true
+source = ["mellea_jev"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true

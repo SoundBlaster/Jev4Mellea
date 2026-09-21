@@ -1,16 +1,12 @@
 """A tri-state semantic verifier and a lazy-imported Mellea 0.7 bridge."""
+
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
-from typing import TYPE_CHECKING, Any, Literal, Sequence
+from typing import TYPE_CHECKING, Any, Literal
 
-from .criteria import (
-    normalize_choice_criteria as _choice_criteria,
-    normalize_noul_criteria as _noul_criteria,
-    normalize_score_criteria as _score_criteria,
-    probability,
-)
 from .contracts import (
     ChoiceCriteria,
     ChoiceProvider,
@@ -20,10 +16,21 @@ from .contracts import (
     ScoreProvider,
     ScoreResponse,
 )
+from .criteria import (
+    normalize_choice_criteria as _choice_criteria,
+)
+from .criteria import (
+    normalize_noul_criteria as _noul_criteria,
+)
+from .criteria import (
+    normalize_score_criteria as _score_criteria,
+)
+from .criteria import (
+    probability,
+)
 
 if TYPE_CHECKING:
-    from mellea.core import Context, Requirement
-    from mellea.core import ValidationResult
+    from mellea.core import Context, Requirement, ValidationResult
     from mellea.core.sampling import SamplingResult
 
 
@@ -120,10 +127,10 @@ class JevVerifier:
             # Keep clients with the original two-key protocol working by default.
             result = self.client.noul(state=state, question=question)
         else:
-            result = self.client.noul(
-                state=state, question=question, criteria=self.criteria
-            )
+            result = self.client.noul(state=state, question=question, criteria=self.criteria)
         p = probability(result.p_yes)
+        outcome: Literal["pass", "fail", "uncertain"]
+        guidance: str
         if p >= self.accept_at:
             outcome, guidance = "pass", "Requirement accepted by the configured threshold."
         elif p <= self.reject_at:
@@ -131,8 +138,11 @@ class JevVerifier:
         else:
             outcome, guidance = "uncertain", "Do not accept automatically; request another check."
         return Verdict(
-            outcome, p, f"Jev {outcome}: P(yes)={p:.6f}. {guidance}",
-            result.model, result.request_id,
+            outcome,
+            p,
+            f"Jev {outcome}: P(yes)={p:.6f}. {guidance}",
+            result.model,
+            result.request_id,
         )
 
     def as_requirement(self, *, check_only: bool = False) -> Requirement:
@@ -142,16 +152,15 @@ class JevVerifier:
         def validate(ctx: Context) -> ValidationResult:
             output = ctx.last_output()
             candidate = None if output is None else output.value
+            if candidate is not None and not isinstance(candidate, str):
+                raise TypeError("Only textual candidates are supported.")
             verdict = self.evaluate(candidate)
             if verdict.outcome == "uncertain":
+                assert candidate is not None
                 raise ReviewRequired(verdict, candidate)
-            return ValidationResult(
-                verdict.accepted, reason=verdict.reason, score=verdict.p_yes
-            )
+            return ValidationResult(verdict.accepted, reason=verdict.reason, score=verdict.p_yes)
 
-        return Requirement(
-            self.description, validation_fn=validate, check_only=check_only
-        )
+        return Requirement(self.description, validation_fn=validate, check_only=check_only)
 
 
 class JevClassifier:
@@ -246,9 +255,7 @@ class JevClassifier:
                     f"(confidence={result.confidence:.6f}). Revise the candidate "
                     f"to fit class {expected_choice!r}."
                 )
-            return ValidationResult(
-                accepted, reason=reason, score=expected_probability
-            )
+            return ValidationResult(accepted, reason=reason, score=expected_probability)
 
         return Requirement(
             f"The candidate belongs to class {expected_choice}.",
@@ -354,9 +361,7 @@ class JevScorer:
             meets_range = (minimum is None or result.score >= minimum) and (
                 maximum is None or result.score <= maximum
             )
-            meets_confidence = (
-                minimum_confidence is None or result.confidence >= minimum_confidence
-            )
+            meets_confidence = minimum_confidence is None or result.confidence >= minimum_confidence
             accepted = meets_range and meets_confidence
             if accepted:
                 reason = (

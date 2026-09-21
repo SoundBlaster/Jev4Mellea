@@ -3,6 +3,7 @@
 Requires .[mellea], an already-running Ollama server and an installed model.
 This end-to-end example was not executed in the build environment.
 """
+
 import os
 import sys
 
@@ -13,7 +14,12 @@ from mellea.stdlib.requirements import simple_validate
 from mellea.stdlib.sampling import RepairTemplateStrategy
 
 from mellea_jev import (
-    GenerationRejected, JevClient, JevError, JevVerifier, ReviewRequired, accepted_text,
+    GenerationRejected,
+    JevClient,
+    JevError,
+    JevVerifier,
+    ReviewRequired,
+    accepted_text,
 )
 
 
@@ -39,7 +45,10 @@ def main() -> int:
                     Requirement(
                         "Use no more than 25 words.",
                         validation_fn=simple_validate(
-                            lambda text: (len(text.split()) <= 25, "Shorten the answer to 25 words.")
+                            lambda text: (
+                                len(text.split()) <= 25,
+                                "Shorten the answer to 25 words.",
+                            )
                         ),
                     ),
                     verifier.as_requirement(),
@@ -51,7 +60,9 @@ def main() -> int:
             print(accepted_text(sampled))  # Never print an unvalidated fallback.
         return 0
     except ReviewRequired as exc:
-        print(f"Review needed; Jev P(yes)={exc.verdict.p_yes}. No answer accepted.", file=sys.stderr)
+        print(
+            f"Review needed; Jev P(yes)={exc.verdict.p_yes}. No answer accepted.", file=sys.stderr
+        )
         # Optional: send exc.candidate and the trusted source to another verifier.
         # This example deliberately does not make a hidden second-model call.
         return 2

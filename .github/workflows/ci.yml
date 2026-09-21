@@ -21,8 +21,14 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install package and test dependencies
-        run: python -m pip install -e ".[mellea,dev]"
+      - name: Install package and quality dependencies
+        run: make install PYTHON=python
 
-      - name: Run test suite
-        run: python -m pytest -q
+      - name: Run lint, format, and type checks
+        run: make quality
+
+      - name: Run tests and enforce branch coverage
+        run: make test
+
+      - name: Check patch whitespace
+        run: make diff-check

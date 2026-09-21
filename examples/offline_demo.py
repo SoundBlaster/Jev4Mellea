@@ -1,4 +1,5 @@
 """No network, no keys, no Mellea: synthetic Noul responses through real HTTPX."""
+
 import json
 
 import httpx2
@@ -12,11 +13,14 @@ def main() -> None:
     def handler(request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.content)
         assert body["questions"]["requirement"]["type"] == "noul"
-        return httpx2.Response(200, json={
-            "model": "jev-OFFLINE-FIXTURE",
-            "answers": {"requirement": {"type": "noul", "noul": next(values)}},
-            "usage": {"input_tokens": 0, "output_tokens": 0},
-        })
+        return httpx2.Response(
+            200,
+            json={
+                "model": "jev-OFFLINE-FIXTURE",
+                "answers": {"requirement": {"type": "noul", "noul": next(values)}},
+                "usage": {"input_tokens": 0, "output_tokens": 0},
+            },
+        )
 
     print("OFFLINE DEMO: probabilities are synthetic fixtures, not model predictions.\n")
     with JevClient("offline-dummy", transport=httpx2.MockTransport(handler)) as client:

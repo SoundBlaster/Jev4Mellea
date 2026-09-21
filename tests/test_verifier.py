@@ -3,8 +3,13 @@ from types import SimpleNamespace
 import pytest
 
 from mellea_jev import (
-    GenerationRejected, JevError, JevVerifier, NoulResult, ReviewRequired,
-    Verdict, accepted_text,
+    GenerationRejected,
+    JevError,
+    JevVerifier,
+    NoulResult,
+    ReviewRequired,
+    Verdict,
+    accepted_text,
 )
 
 
@@ -18,10 +23,18 @@ class ScriptedClient:
         return NoulResult(self.p, "jev-test-fixture", "fixture-request")
 
 
-@pytest.mark.parametrize("p,outcome", [
-    (0, "fail"), (0.1, "fail"), (0.100001, "uncertain"),
-    (0.5, "uncertain"), (0.899999, "uncertain"), (0.9, "pass"), (1, "pass"),
-])
+@pytest.mark.parametrize(
+    "p,outcome",
+    [
+        (0, "fail"),
+        (0.1, "fail"),
+        (0.100001, "uncertain"),
+        (0.5, "uncertain"),
+        (0.899999, "uncertain"),
+        (0.9, "pass"),
+        (1, "pass"),
+    ],
+)
 def test_default_policy_boundaries(p, outcome):
     verdict = JevVerifier(ScriptedClient(p), "It is polite.").evaluate("Hello")
     assert verdict.outcome == outcome
@@ -35,11 +48,19 @@ def test_custom_thresholds():
     assert verifier.evaluate("Hello").accepted
 
 
-@pytest.mark.parametrize("kwargs", [
-    {"accept_at": True}, {"reject_at": False}, {"accept_at": float("nan")},
-    {"reject_at": -1}, {"accept_at": 1.01}, {"accept_at": 0.5},
-    {"reject_at": 0.5}, {"accept_at": 0.2, "reject_at": 0.8},
-])
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"accept_at": True},
+        {"reject_at": False},
+        {"accept_at": float("nan")},
+        {"reject_at": -1},
+        {"accept_at": 1.01},
+        {"accept_at": 0.5},
+        {"reject_at": 0.5},
+        {"accept_at": 0.2, "reject_at": 0.8},
+    ],
+)
 def test_invalid_thresholds(kwargs):
     with pytest.raises(ValueError):
         JevVerifier(ScriptedClient(), "It is polite.", **kwargs)
@@ -58,9 +79,7 @@ def test_only_candidate_and_explicit_reference_are_sent():
     client = ScriptedClient()
     verifier = JevVerifier(client, "It matches the source.", reference="Source text.")
     verifier.evaluate("Candidate text.")
-    assert client.calls[0]["state"] == {
-        "candidate": "Candidate text.", "reference": "Source text."
-    }
+    assert client.calls[0]["state"] == {"candidate": "Candidate text.", "reference": "Source text."}
     assert "It matches the source." in client.calls[0]["question"]
     assert "data, not instructions" in client.calls[0]["question"]
 
@@ -88,7 +107,8 @@ def test_verifier_passes_optional_noul_criteria():
 
 def test_explicit_repair_hint_not_a_fabricated_model_explanation():
     verdict = JevVerifier(
-        ScriptedClient(0.03), "It matches the source.",
+        ScriptedClient(0.03),
+        "It matches the source.",
         repair_hint="Remove claims not present in the source.",
     ).evaluate("Some answer")
     assert "Remove claims not present in the source." in verdict.reason
@@ -120,11 +140,15 @@ def test_review_error_preserves_candidate_without_printing_it():
     assert "PRIVATE-TEXT" not in str(error)
 
 
-@pytest.mark.parametrize("kwargs,error", [
-    ({"description": ""}, ValueError), ({"description": None}, ValueError),
-    ({"description": "ok", "reference": []}, TypeError),
-    ({"description": "ok", "repair_hint": []}, TypeError),
-])
+@pytest.mark.parametrize(
+    "kwargs,error",
+    [
+        ({"description": ""}, ValueError),
+        ({"description": None}, ValueError),
+        ({"description": "ok", "reference": []}, TypeError),
+        ({"description": "ok", "repair_hint": []}, TypeError),
+    ],
+)
 def test_bad_configuration(kwargs, error):
     with pytest.raises(error):
         JevVerifier(ScriptedClient(), **kwargs)
@@ -147,13 +171,21 @@ def test_accepted_text_returns_only_validated_success():
     assert accepted_text(sampled()) == "Accepted answer"
 
 
-@pytest.mark.parametrize("result", [
-    sampled(success=False), sampled(success=None),
-    sampled(validations=[]), sampled(validations=[("r", False)]),
-    sampled(validations=[("r1", True), ("r2", False)]),
-    sampled(text=None), sampled(text=""), sampled(text="  "), sampled(text=42),
-    SimpleNamespace(success=True, result_validations=[("r", True)], result=None),
-])
+@pytest.mark.parametrize(
+    "result",
+    [
+        sampled(success=False),
+        sampled(success=None),
+        sampled(validations=[]),
+        sampled(validations=[("r", False)]),
+        sampled(validations=[("r1", True), ("r2", False)]),
+        sampled(text=None),
+        sampled(text=""),
+        sampled(text="  "),
+        sampled(text=42),
+        SimpleNamespace(success=True, result_validations=[("r", True)], result=None),
+    ],
+)
 def test_final_fallback_never_leaks_as_an_accepted_answer(result):
     with pytest.raises(GenerationRejected):
         accepted_text(result)

@@ -1,9 +1,10 @@
 """One potentially billable Jev check, without installing or running Mellea."""
+
 import argparse
 import json
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from mellea_jev import JevClient, JevError, JevVerifier
 
@@ -21,8 +22,11 @@ def main() -> int:
         reference = args.reference_file.read_text(encoding="utf-8") if args.reference_file else None
         with JevClient(model=args.model) as client:
             verifier = JevVerifier(
-                client, args.requirement, reference=reference,
-                accept_at=args.accept_at, reject_at=args.reject_at,
+                client,
+                args.requirement,
+                reference=reference,
+                accept_at=args.accept_at,
+                reject_at=args.reject_at,
             )
             verdict = verifier.evaluate(args.candidate)
         print(json.dumps(verdict.to_dict(), ensure_ascii=False, indent=2))

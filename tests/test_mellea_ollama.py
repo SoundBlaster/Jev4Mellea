@@ -3,6 +3,7 @@
 Requires .[mellea,dev], a running Ollama server, and OLLAMA_MODEL.
 Never sends requests to TypeSafe and does not need TYPESAFE_API_KEY.
 """
+
 import json
 import os
 

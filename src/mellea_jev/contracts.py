@@ -3,9 +3,11 @@
 Implementations are structural: a provider does not need to inherit these
 protocols. The existing ``JevClient`` satisfies all three primitive protocols.
 """
+
 from __future__ import annotations
 
-from typing import Any, Mapping, Protocol, Sequence, TypeAlias, TypedDict
+from collections.abc import Mapping, Sequence
+from typing import Any, Protocol, TypeAlias, TypedDict
 
 JsonScalar: TypeAlias = str | int | float | bool | None
 JsonValue: TypeAlias = JsonScalar | list["JsonValue"] | dict[str, "JsonValue"]

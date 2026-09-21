@@ -4,14 +4,18 @@ PY := $(VENV)/bin/python
 OLLAMA_MODEL ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo test check test-integration ollama-test live-test live-check mellea-ollama diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check mellea-ollama diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
 	  'install          Create .venv and install the package, Mellea, and test dependencies' \
 	  'demo             Run the offline demo (no keys, service, or model required)' \
-	  'test             Run the full pytest suite (Jev and Ollama network calls are skipped)' \
-	  'check            Run the full tests and git diff whitespace check' \
+	  'lint             Run Ruff lint checks, including a complexity limit' \
+	  'format-check     Verify Python formatting with Ruff' \
+	  'typecheck        Run strict Mypy checks on the distributable package' \
+	  'quality          Run lint, formatting, and type checks' \
+	  'test             Run pytest with a branch-coverage threshold (live calls skipped)' \
+	  'check            Run quality checks, tests, coverage, and whitespace checks' \
 	  'test-integration Run real Mellea Requirement contract tests with mocked Jev HTTP' \
 	  'ollama-test      Run the local Ollama repair test; Jev HTTP is mocked' \
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
@@ -30,10 +34,21 @@ $(VENV)/.installed: pyproject.toml
 demo: $(VENV)/.installed ## Run the offline demo
 	$(PY) examples/offline_demo.py
 
-test: $(VENV)/.installed ## Run all automated tests; opt-in live tests remain skipped
-	$(PY) -m pytest -q
+lint: $(VENV)/.installed ## Run Ruff lint rules, including a cyclomatic complexity limit
+	$(PY) -m ruff check --output-format=github .
 
-check: test diff-check ## Run the local CI gate
+format-check: $(VENV)/.installed ## Verify all Python files use Ruff formatting
+	$(PY) -m ruff format --check .
+
+typecheck: $(VENV)/.installed ## Run strict static type checks for the public package
+	$(PY) -m mypy
+
+quality: lint format-check typecheck ## Run the static quality gates
+
+test: $(VENV)/.installed ## Run tests and enforce the configured branch-coverage threshold
+	$(PY) -m pytest -q --cov=mellea_jev --cov-branch --cov-report=term-missing
+
+check: quality test diff-check ## Run the same quality gate used by GitHub Actions
 
 test-integration: $(VENV)/.installed ## Exercise the real Mellea Requirement.validate hook with Jev mocked
 	$(PY) -m pytest -q tests/test_mellea_integration.py
@@ -59,5 +74,5 @@ diff-check: ## Check staged and unstaged changes for whitespace errors
 	git diff --check HEAD
 
 clean: ## Remove generated local files
-	rm -rf $(VENV) .pytest_cache build dist src/*.egg-info
+	rm -rf $(VENV) .pytest_cache .mypy_cache .ruff_cache .coverage build dist src/*.egg-info
 	find src tests -type d -name __pycache__ -prune -exec rm -rf {} +

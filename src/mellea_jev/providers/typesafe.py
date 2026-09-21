@@ -1,27 +1,50 @@
 """TypeSafe HTTP provider implementing the package's primitive contracts."""
+
 from __future__ import annotations
 
 import math
 import os
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Annotated, Any, Mapping, Sequence
+from typing import Annotated, Any, cast
 
 import httpx2
 from pydantic import ConfigDict, Field
 from typesafe_sdk import (
     Choice as SDKChoice,
+)
+from typesafe_sdk import (
     ChoiceAnswer as SDKChoiceAnswer,
+)
+from typesafe_sdk import (
     Noul as SDKNoul,
+)
+from typesafe_sdk import (
     NoulAnswer as SDKNoulAnswer,
+)
+from typesafe_sdk import (
+    NoulCriteria as SDKNoulCriteria,
+)
+from typesafe_sdk import (
     RetryPolicy,
-    Score as SDKScore,
-    ScoreAnswer as SDKScoreAnswer,
-    SystemOneResponse as SDKSystemOneResponse,
     TypeSafeAPIConnectionError,
     TypeSafeAPIError,
     TypeSafeAPIResponseValidationError,
-    TypeSafeClient as SDKTypeSafeClient,
     TypeSafeError,
+)
+from typesafe_sdk import (
+    Score as SDKScore,
+)
+from typesafe_sdk import (
+    ScoreAnswer as SDKScoreAnswer,
+)
+from typesafe_sdk import (
+    SystemOneResponse as SDKSystemOneResponse,
+)
+from typesafe_sdk import (
+    TypeSafeClient as SDKTypeSafeClient,
+)
+from typesafe_sdk import (
     Usage as SDKUsage,
 )
 
@@ -49,6 +72,7 @@ ENDPOINT = f"{BASE_URL}/v1/systemone"
 QUESTION_ID = "requirement"
 CHOICE_QUESTION_ID = "classification"
 SCORE_QUESTION_ID = "rating"
+
 
 class JevError(RuntimeError):
     """A transport or API-contract failure, not a semantic rejection."""
@@ -163,10 +187,10 @@ def _score_response_map(value: object, level_count: int) -> dict[int, Any]:
 
 
 class _AdapterScoreAnswer(SDKScoreAnswer):
-    """Retain wire score keys as strings so noncanonical aliases fail closed."""
+    """Keep wire score keys as strings so noncanonical aliases fail closed."""
 
-    probabilities: dict[str, float]
-    legend: dict[str, str]
+    probabilities: dict[str, float]  # type: ignore[assignment]
+    legend: dict[str, str]  # type: ignore[assignment]
 
 
 _AdapterAnswer = Annotated[
@@ -176,12 +200,13 @@ _AdapterAnswer = Annotated[
 
 
 class _AdapterSystemOneResponse(SDKSystemOneResponse):
-    """Keep usage metadata optional as it was before adopting the SDK."""
+    """Preserve the adapter's optional usage and strict score-key contracts."""
 
     model_config = ConfigDict(extra="ignore", frozen=True, strict=True)
 
-    answers: dict[str, _AdapterAnswer] = Field(default_factory=dict)
-    usage: SDKUsage | None = None
+    answers: dict[str, _AdapterAnswer] = Field(default_factory=dict)  # type: ignore[assignment]
+    # Preserve the adapter's optional usage contract; SDK 0.7.0 marks it required.
+    usage: SDKUsage | None = None  # type: ignore[assignment]
 
 
 def _parse_answer(
@@ -196,13 +221,15 @@ def _parse_answer(
         if not isinstance(answer, SDKNoulAnswer):
             raise ValueError("Expected a Noul answer.")
         return NoulResult(
-            p_yes=probability(answer.noul), model=model, request_id=request_id,
+            p_yes=probability(answer.noul),
+            model=model,
+            request_id=request_id,
             usage=usage,
         )
     if isinstance(question, ChoiceQuestion):
         if not isinstance(answer, SDKChoiceAnswer):
             raise ValueError("Expected a Choice answer.")
-        result = ChoiceResult(
+        choice_result = ChoiceResult(
             choice=answer.choice,
             confidence=probability(answer.confidence),
             probabilities=answer.probabilities,
@@ -210,15 +237,18 @@ def _parse_answer(
             request_id=request_id,
             usage=usage,
         )
-        if set(result.probabilities) != set(question.criteria) or result.choice not in question.criteria:
+        if (
+            set(choice_result.probabilities) != set(question.criteria)
+            or choice_result.choice not in question.criteria
+        ):
             raise ValueError("Choice answer labels do not match the requested criteria.")
-        return result
+        return choice_result
     if isinstance(question, ScoreQuestion):
-        if not isinstance(answer, SDKScoreAnswer):
+        if not isinstance(answer, _AdapterScoreAnswer):
             raise ValueError("Expected a Score answer.")
         probabilities = _score_answer_map(answer.probabilities, len(question.criteria))
         legend = _score_answer_map(answer.legend, len(question.criteria))
-        result = ScoreResult(
+        score_result = ScoreResult(
             score=answer.score,
             confidence=probability(answer.confidence),
             probabilities=probabilities,
@@ -227,9 +257,9 @@ def _parse_answer(
             request_id=request_id,
             usage=usage,
         )
-        if result.legend != dict(enumerate(question.criteria)):
+        if score_result.legend != dict(enumerate(question.criteria)):
             raise ValueError("Score legend does not match the requested criteria.")
-        return result
+        return score_result
     raise TypeError("Unsupported TypeSafe question.")
 
 
@@ -242,7 +272,10 @@ def _score_answer_map(value: Mapping[str, Any], level_count: int) -> dict[int, A
 
 def _to_sdk_question(question: TypeSafeQuestion) -> SDKNoul | SDKChoice | SDKScore:
     if isinstance(question, NoulQuestion):
-        return SDKNoul(instructions=question.instructions, criteria=question.criteria)
+        return SDKNoul(
+            instructions=question.instructions,
+            criteria=cast(SDKNoulCriteria | None, question.criteria),
+        )
     if isinstance(question, ChoiceQuestion):
         return SDKChoice(instructions=question.instructions, criteria=question.criteria)
     if isinstance(question, ScoreQuestion):
@@ -309,7 +342,9 @@ class TypeSafeProvider:
             if not isinstance(question_id, str) or not question_id.strip():
                 raise ValueError("Question IDs must be nonempty strings.")
             if not isinstance(question, (NoulQuestion, ChoiceQuestion, ScoreQuestion)):
-                raise TypeError("questions must contain NoulQuestion, ChoiceQuestion, or ScoreQuestion values.")
+                raise TypeError(
+                    "questions must contain NoulQuestion, ChoiceQuestion, or ScoreQuestion values."
+                )
             normalized_questions[question_id] = question
 
         sdk_questions = {
@@ -356,7 +391,9 @@ class TypeSafeProvider:
             }
             return SystemOneResult(answers, response.model, request_id, usage)
         except (KeyError, TypeError, ValueError, OverflowError, AttributeError):
-            raise JevProtocolError("Malformed TypeSafe response; refusing to return answers.") from None
+            raise JevProtocolError(
+                "Malformed TypeSafe response; refusing to return answers."
+            ) from None
 
     def noul(
         self,

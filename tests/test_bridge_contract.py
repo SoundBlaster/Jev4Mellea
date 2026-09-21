@@ -3,13 +3,19 @@
 The separate test_mellea_integration.py imports and exercises the real package.
 These tests test our wiring even in environments without that dependency.
 """
+
 import sys
 from types import ModuleType, SimpleNamespace
 
 import pytest
 
 from mellea_jev import (
-    ChoiceResult, JevClassifier, JevError, JevVerifier, NoulResult, ReviewRequired,
+    ChoiceResult,
+    JevClassifier,
+    JevError,
+    JevVerifier,
+    NoulResult,
+    ReviewRequired,
 )
 
 
@@ -26,6 +32,7 @@ def contract_module(monkeypatch):
     class ValidationResultDouble:
         def __init__(self, result, reason=None, score=None):
             self.result, self.reason, self.score = result, reason, score
+
         def __bool__(self):
             return self.result
 
@@ -41,6 +48,7 @@ def contract_module(monkeypatch):
 class Client:
     def __init__(self, p):
         self.p = p
+
     def noul(self, **_):
         return NoulResult(self.p, "jev-contract-double")
 
@@ -80,6 +88,7 @@ def test_api_error_propagates_through_callback(contract_module):
     class BrokenClient:
         def noul(self, **_):
             raise JevError("not available")
+
     requirement = JevVerifier(BrokenClient(), "Be polite.").as_requirement()
     with pytest.raises(JevError):
         requirement.validation_fn(context("Hello"))
@@ -89,13 +98,15 @@ def test_choice_requirement_accepts_expected_class(contract_module):
     class ClassifierClient:
         def choice(self, **_):
             return ChoiceResult(
-                "billing", 0.8,
+                "billing",
+                0.8,
                 {"billing": 0.8, "technical": 0.2},
                 "jev-contract-double",
             )
 
     classifier = JevClassifier(
-        ClassifierClient(), "Choose a category.",
+        ClassifierClient(),
+        "Choose a category.",
         criteria={"billing": "Payment issues", "technical": "Product issues"},
     )
     requirement = classifier.as_requirement("billing", minimum_confidence=0.7)
@@ -110,13 +121,15 @@ def test_choice_requirement_fails_for_other_class_and_bad_expected_class(contrac
     class ClassifierClient:
         def choice(self, **_):
             return ChoiceResult(
-                "technical", 0.8,
+                "technical",
+                0.8,
                 {"billing": 0.2, "technical": 0.8},
                 "jev-contract-double",
             )
 
     classifier = JevClassifier(
-        ClassifierClient(), "Choose a category.",
+        ClassifierClient(),
+        "Choose a category.",
         criteria={"billing": "Payment issues", "technical": "Product issues"},
     )
     with pytest.raises(ValueError, match="configured criteria"):
@@ -131,13 +144,15 @@ def test_choice_requirement_can_reject_low_confidence(contract_module):
     class ClassifierClient:
         def choice(self, **_):
             return ChoiceResult(
-                "billing", 0.6,
+                "billing",
+                0.6,
                 {"billing": 0.6, "technical": 0.4},
                 "jev-contract-double",
             )
 
     classifier = JevClassifier(
-        ClassifierClient(), "Choose a category.",
+        ClassifierClient(),
+        "Choose a category.",
         criteria={"billing": "Payment issues", "technical": "Product issues"},
     )
     result = classifier.as_requirement("billing", minimum_confidence=0.8).validation_fn(

@@ -50,26 +50,30 @@ def test_system_one_sends_mixed_questions_in_one_request():
                 },
             },
         }
-        return httpx2.Response(200, json={
-            "model": "jev-batch-fixture",
-            "usage": {"input_tokens": 120, "output_tokens": 18},
-            "answers": {
-                "urgent": {"type": "noul", "noul": 0.9},
-                "team": {
-                    "type": "choice",
-                    "choice": "engineering",
-                    "confidence": 0.8,
-                    "probabilities": {"support": 0.2, "engineering": 0.8},
-                },
-                "severity": {
-                    "type": "score",
-                    "score": 1.5,
-                    "confidence": 0.6,
-                    "probabilities": {"0": 0.0, "1": 0.5, "2": 0.5},
-                    "legend": {"0": "Cosmetic", "1": "Workaround exists", "2": "Blocking"},
+        return httpx2.Response(
+            200,
+            json={
+                "model": "jev-batch-fixture",
+                "usage": {"input_tokens": 120, "output_tokens": 18},
+                "answers": {
+                    "urgent": {"type": "noul", "noul": 0.9},
+                    "team": {
+                        "type": "choice",
+                        "choice": "engineering",
+                        "confidence": 0.8,
+                        "probabilities": {"support": 0.2, "engineering": 0.8},
+                    },
+                    "severity": {
+                        "type": "score",
+                        "score": 1.5,
+                        "confidence": 0.6,
+                        "probabilities": {"0": 0.0, "1": 0.5, "2": 0.5},
+                        "legend": {"0": "Cosmetic", "1": "Workaround exists", "2": "Blocking"},
+                    },
                 },
             },
-        }, headers={"x-typesafe-request-id": "batch-1"})
+            headers={"x-typesafe-request-id": "batch-1"},
+        )
 
     with JevClient("test-key", transport=httpx2.MockTransport(handler)) as client:
         result = client.system_one(
@@ -91,10 +95,15 @@ def test_system_one_sends_mixed_questions_in_one_request():
 
 
 def test_system_one_rejects_missing_answers():
-    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json={
-        "model": "jev",
-        "answers": {"first": {"type": "noul", "noul": 0.9}},
-    }))
+    transport = httpx2.MockTransport(
+        lambda _: httpx2.Response(
+            200,
+            json={
+                "model": "jev",
+                "answers": {"first": {"type": "noul", "noul": 0.9}},
+            },
+        )
+    )
     with JevClient("test-key", transport=transport) as client:
         with pytest.raises(JevProtocolError):
             client.system_one(
@@ -106,11 +115,14 @@ def test_system_one_rejects_missing_answers():
             )
 
 
-@pytest.mark.parametrize("questions,error", [
-    ({}, ValueError),
-    ({" ": NoulQuestion("Question?")}, ValueError),
-    ({"unknown": object()}, TypeError),
-])
+@pytest.mark.parametrize(
+    "questions,error",
+    [
+        ({}, ValueError),
+        ({" ": NoulQuestion("Question?")}, ValueError),
+        ({"unknown": object()}, TypeError),
+    ],
+)
 def test_system_one_validates_question_collection_before_request(questions, error):
     transport = httpx2.MockTransport(lambda _: pytest.fail("Must reject before HTTP."))
     with JevClient("test-key", transport=transport) as client:

@@ -1,4 +1,5 @@
 """Provider-independent normalization for primitive criteria and probabilities."""
+
 from __future__ import annotations
 
 import math
@@ -15,9 +16,12 @@ from .contracts import (
 
 def probability(value: object) -> float:
     """Reject bools, numeric strings, NaN, infinity and out-of-range values."""
-    if type(value) not in (int, float) or not 0 <= value <= 1:
+    if type(value) not in (int, float):
         raise ValueError("Expected a finite number in [0, 1], not a boolean.")
-    return float(value)
+    number = cast(int | float, value)
+    if not math.isfinite(number) or not 0 <= number <= 1:
+        raise ValueError("Expected a finite number in [0, 1], not a boolean.")
+    return float(number)
 
 
 def _json_value(value: object, ancestors: frozenset[int] = frozenset()) -> JsonValue:
@@ -59,8 +63,7 @@ def _json_description(description: object, primitive: str) -> ChoiceDescription 
             )
         return description
     if isinstance(description, Mapping) or (
-        isinstance(description, Sequence)
-        and not isinstance(description, (str, bytes, bytearray))
+        isinstance(description, Sequence) and not isinstance(description, (str, bytes, bytearray))
     ):
         return cast(ChoiceDescription, _json_value(description))
     raise TypeError(f"{primitive} descriptions must be strings, objects, arrays, or None.")

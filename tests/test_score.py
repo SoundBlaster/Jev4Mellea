@@ -6,7 +6,6 @@ import pytest
 from mellea_jev import JevClient, JevProtocolError, ScoreResult
 from mellea_jev.client import ENDPOINT
 
-
 LEVELS = ["Cosmetic", "Workaround exists", "Blocking"]
 
 
@@ -51,40 +50,53 @@ def test_score_serializes_ordered_levels_and_parses_weighted_result():
         )
 
     assert result == ScoreResult(
-        0.7, 0.6, {0: 0.5, 1: 0.3, 2: 0.2},
+        0.7,
+        0.6,
+        {0: 0.5, 1: 0.3, 2: 0.2},
         {0: "Cosmetic", 1: "Workaround exists", 2: "Blocking"},
-        "jev-score-fixture", "score-42",
+        "jev-score-fixture",
+        "score-42",
     )
 
 
-@pytest.mark.parametrize("criteria,error", [
-    ("not an ordered list", TypeError),
-    (["only one level"], ValueError),
-    (["", "blocking"], ValueError),
-    ([f"level {i}" for i in range(11)], ValueError),
-])
+@pytest.mark.parametrize(
+    "criteria,error",
+    [
+        ("not an ordered list", TypeError),
+        (["only one level"], ValueError),
+        (["", "blocking"], ValueError),
+        ([f"level {i}" for i in range(11)], ValueError),
+    ],
+)
 def test_invalid_score_criteria(criteria, error):
-    with JevClient("test-key", transport=httpx2.MockTransport(lambda _: httpx2.Response(500))) as client:
+    with JevClient(
+        "test-key", transport=httpx2.MockTransport(lambda _: httpx2.Response(500))
+    ) as client:
         with pytest.raises(error):
             client.score(state={}, question="Rate severity.", criteria=criteria)
 
 
-@pytest.mark.parametrize("body", [
-    None,
-    {"model": "jev", "answers": {"rating": {"type": "choice"}}},
-    score_wire(score=0.5),
-    score_wire(probabilities={"0": 0.5, "1": 0.3, "2": 0.1}),
-    score_wire(probabilities={"0": 1.0, "1": 0.0, "2": 0.0}, score=0.5),
-    score_wire(legend={"0": "Cosmetic", "1": "Changed", "2": "Blocking"}),
-    score_wire(confidence=True),
-    score_wire(score=float("nan")),
-])
+@pytest.mark.parametrize(
+    "body",
+    [
+        None,
+        {"model": "jev", "answers": {"rating": {"type": "choice"}}},
+        score_wire(score=0.5),
+        score_wire(probabilities={"0": 0.5, "1": 0.3, "2": 0.1}),
+        score_wire(probabilities={"0": 1.0, "1": 0.0, "2": 0.0}, score=0.5),
+        score_wire(legend={"0": "Cosmetic", "1": "Changed", "2": "Blocking"}),
+        score_wire(confidence=True),
+        score_wire(score=float("nan")),
+    ],
+)
 def test_malformed_score_response_fails_closed(body):
-    transport = httpx2.MockTransport(lambda _: httpx2.Response(
-        200,
-        content=json.dumps(body, allow_nan=True).encode(),
-        headers={"content-type": "application/json"},
-    ))
+    transport = httpx2.MockTransport(
+        lambda _: httpx2.Response(
+            200,
+            content=json.dumps(body, allow_nan=True).encode(),
+            headers={"content-type": "application/json"},
+        )
+    )
     with JevClient("test-key", transport=transport) as client:
         with pytest.raises(JevProtocolError):
             client.score(state={"candidate": "text"}, question="Rate.", criteria=LEVELS)

@@ -1,4 +1,5 @@
 """Normalized primitive responses shared by provider implementations."""
+
 from __future__ import annotations
 
 import math
@@ -59,9 +60,7 @@ class ChoiceResult:
         confidence = probability(self.confidence)
         if not isinstance(self.probabilities, dict) or not self.probabilities:
             raise ValueError("Expected a nonempty choice probability map.")
-        probabilities = {
-            label: probability(value) for label, value in self.probabilities.items()
-        }
+        probabilities = {label: probability(value) for label, value in self.probabilities.items()}
         if any(not isinstance(label, str) or not label.strip() for label in probabilities):
             raise ValueError("Choice probability labels must be nonempty strings.")
         if self.choice not in probabilities:
@@ -93,9 +92,7 @@ class ScoreResult:
         probability(self.confidence)
         if not isinstance(self.probabilities, dict) or len(self.probabilities) < 2:
             raise ValueError("Expected a nonempty score probability map.")
-        probabilities = {
-            level: probability(value) for level, value in self.probabilities.items()
-        }
+        probabilities = {level: probability(value) for level, value in self.probabilities.items()}
         if any(type(level) is not int or level < 0 for level in probabilities):
             raise ValueError("Score levels must be nonnegative integers.")
         if set(probabilities) != set(range(len(probabilities))):

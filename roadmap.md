@@ -20,7 +20,26 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
    API, with the dependency and model loading kept optional. Exercise the
    contracts against this second API and document differences such as its
    entropy-based Choice confidence.
-4. **Deferred.** Keep provider construction explicit. Revisit configuration or
+4. **Proposed — OpenAI-backed evaluator through the official Python SDK.** Use
+   an OpenAI model as a Jev-like semantic evaluator without coupling Mellea
+   helpers to OpenAI SDK types or wire formats.
+   - Start with a feasibility spike: select the SDK API and model configuration,
+     confirm Structured Outputs support, and define how refusals, incomplete
+     responses, usage, model IDs, and request IDs map to the provider contracts.
+   - Implement an explicitly constructed `OpenAIProvider` for the existing
+     Noul, Choice, and Score protocols. Keep the `openai` dependency optional
+     and allow clients to select the model through provider configuration.
+   - Establish the meaning of Noul probabilities and Choice/Score confidence
+     before exposing them as comparable to Jev results. Structured Outputs can
+     enforce a response schema, but semantic correctness and score calibration
+     still require evaluation. See OpenAI's
+     [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs).
+   - Cover request mapping and refusal, malformed, and incomplete responses
+     with mocked SDK tests. Keep live tests opt-in; compare OpenAI, TypeSafe,
+     and Laya on the same versioned labeled dataset for false-acceptance,
+     false-rejection, uncertain rates, latency, and cost before making quality
+     or threshold-equivalence claims.
+5. **Deferred.** Keep provider construction explicit. Revisit configuration or
    entry-point discovery if client projects need dynamic provider selection and
    there is clear ownership for maintaining the integration.
 

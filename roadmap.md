@@ -20,7 +20,33 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
    API, with the dependency and model loading kept optional. Exercise the
    contracts against this second API and document differences such as its
    entropy-based Choice confidence.
-4. **Deferred.** Keep provider construction explicit. Revisit configuration or
+4. **Proposed — OpenAI decision evaluator through the official Python SDK.**
+   Investigate the reported
+   [OpenAI Decisions API built on Luna](https://thenewstack.io/openai-decision-api-luna/)
+   as the closest native Jev-like interface. Treat the article as a lead, not
+   as an API contract: confirm the endpoint, SDK surface, preview access, model
+   availability, option limits, confidence semantics, latency, and pricing in
+   OpenAI's official
+   [API documentation](https://developers.openai.com/api/docs/models) and
+   [SDK documentation](https://developers.openai.com/api/docs/libraries) before
+   implementation.
+   - If an official Decisions API is available, build an explicitly
+     constructed `OpenAIProvider` on the official SDK, implementing the
+     existing Noul, Choice, and Score protocols. Keep the `openai` dependency
+     optional, let client code select the model, and keep OpenAI SDK types out
+     of the Mellea-facing contracts.
+   - If there is no usable dedicated endpoint, evaluate the Responses API with
+     Structured Outputs as a fallback. Structured Outputs can enforce a
+     response schema, but semantic correctness and score calibration still
+     require evaluation; see the
+     [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs).
+   - Establish the meaning of Noul probabilities and Choice/Score confidence
+     before treating them as comparable to Jev results. Cover request mapping,
+     refusal, malformed, and incomplete responses with mocked SDK tests; keep
+     live tests opt-in. Compare OpenAI, TypeSafe, and Laya on the same versioned
+     labeled dataset for false-acceptance, false-rejection, uncertain rates,
+     latency, and cost before making quality or threshold-equivalence claims.
+5. **Deferred.** Keep provider construction explicit. Revisit configuration or
    entry-point discovery if client projects need dynamic provider selection and
    there is clear ownership for maintaining the integration.
 

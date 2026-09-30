@@ -21,20 +21,32 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
    contracts against this second API and document differences such as its
    entropy-based Choice confidence.
 4. **Proposed — OpenAI decision evaluator through the official Python SDK.**
-   Investigate the reported
-   [OpenAI Decisions API built on Luna](https://thenewstack.io/openai-decision-api-luna/)
-   as the closest native Jev-like interface. Treat the article as a lead, not
-   as an API contract: confirm the endpoint, SDK surface, preview access, model
-   availability, option limits, confidence semantics, latency, and pricing in
-   OpenAI's official
-   [API documentation](https://developers.openai.com/api/docs/models) and
-   [SDK documentation](https://developers.openai.com/api/docs/libraries) before
-   implementation.
-   - If an official Decisions API is available, build an explicitly
-     constructed `OpenAIProvider` on the official SDK, implementing the
-     existing Noul, Choice, and Score protocols. Keep the `openai` dependency
-     optional, let client code select the model, and keep OpenAI SDK types out
-     of the Mellea-facing contracts.
+   OpenAI's [DevDay 2026 recap](https://openai.com/index/devday-2026-recap/)
+   announced the Decisions API as a capability that focuses Luna's
+   intelligence on developer-defined questions with finite answers. It accepts
+   text or image context and is intended for classification, routing, and agent
+   action selection. The announcement described a limited preview and a broader
+   release planned in the following days. This is an API capability built on
+   Luna, not a separately announced model.
+
+   The announcement does not provide a technical API contract. At the time of
+   this roadmap update, no Decisions API contract is present in the checked
+   [OpenAI API documentation](https://developers.openai.com/api/docs) or
+   [API changelog](https://developers.openai.com/api/docs/changelog). Before
+   implementation, verify the endpoint, official Python SDK surface, preview
+   access, model availability, option limits, confidence semantics, latency,
+   and pricing from official technical sources. The
+   [SDK and CLI page](https://developers.openai.com/api/docs/libraries) lists
+   Swift clients among community libraries and says OpenAI does not verify
+   their correctness or security; do not treat a Swift client as an official
+   SDK. Latency claims in the
+   [New Stack report](https://thenewstack.io/openai-decision-api-luna/) remain
+   unverified by the official sources checked here.
+   - If an official Decisions API and a supported official Python SDK surface
+     become available, build an explicitly constructed `OpenAIProvider` on
+     that SDK, implementing the existing Noul, Choice, and Score protocols.
+     Keep the `openai` dependency optional, let client code select the model,
+     and keep OpenAI SDK types out of the Mellea-facing contracts.
    - If there is no usable dedicated endpoint, evaluate the Responses API with
      Structured Outputs as a fallback. Structured Outputs can enforce a
      response schema, but semantic correctness and score calibration still

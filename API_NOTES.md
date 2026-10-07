@@ -64,9 +64,44 @@ JSON-значения, но их внутренним полям адаптер 
 в предыдущем обсуждении был псевдокодом. Этот маленький пакет использует
 HTTP напрямую и не зависит от версии SDK.
 
+## OpenAI Decisions API
+
+Дата сверки этого раздела: **2026-10-07**. Проверены
+[Decisions guide](https://developers.openai.com/api/docs/guides/decisions) и
+официальный Python SDK **3.26.0**. Это проверка контракта и SDK на моках;
+успешного live-запроса от нашего аккаунта пока нет.
+
+`OpenAIProvider` вызывает `client.decisions.with_raw_response.create(...)`
+на `POST https://api.openai.com/v1/decisions`. Один именованный predicate
+преобразуется в `NoulResult`: `probability` → `p_yes`, модель и счётчики
+токенов берутся из ответа, request ID — из `x-request-id`.
+Официальная SDK-модель строго проверяет исходный JSON без преобразования
+строк и boolean в числа. При refusal, неверном имени/числе ответов или
+повреждённом контракте адаптер возвращает ошибку вместо verdict.
+
+Словарь `state` сериализуется как JSON-текст в `input`; описания Noul
+`criteria` добавляются как JSON к instructions. Это правило нашего адаптера:
+predicate не имеет отдельного поля критериев true/false. Ссылки или данные
+изображений в словаре остаются текстом; визуальные запросы не поддержаны.
+
+SDK подключается только при создании провайдера через extra `openai`.
+По умолчанию используется официальный endpoint. Явный `base_url` выбирает
+CoreInfra или другой gateway, реализующий Decisions API: путь `/decisions`
+добавляется к переданному API-префиксу. `OPENAI_BASE_URL` игнорируется.
+Допустимы абсолютные HTTP(S) URL без credentials, query и fragment.
+API key отправляется на явно выбранный адрес; live-совместимость CoreInfra
+не проверена. Редиректы и environment proxies отключены,
+`max_retries=0`. Live-проверка запускается только через явный opt-in
+`RUN_LIVE_OPENAI=1` и `OPENAI_API_KEY` либо `make openai-live-test`.
+Калибровка порогов относительно Jev, Choice и Score остаются задачами roadmap.
+
 ## Mellea
 
-Цель: `mellea==0.7.0`, Python >=3.11.
+Цель: `mellea>=0.7.0,<0.9.0`, Python >=3.11. Исходные ссылки ниже относятся
+к 0.7.0; повторная проверка на установленном Mellea 0.8.0 выполнена
+2026-10-07: настоящие `Requirement.validate`, `ValidationResult` и
+интеграция Noul/Choice/Score прошли существующие contract-тесты.
+CI проверяет обе версии на всех поддерживаемых версиях Python.
 
 - [Write Custom Verifiers](https://docs.mellea.ai/how-to/write-custom-verifiers):
   `Requirement(description, validation_fn=...)` и `ValidationResult`.

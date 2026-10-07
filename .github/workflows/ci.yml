@@ -12,12 +12,13 @@ permissions:
 
 jobs:
   compatibility:
-    name: compatibility (Python ${{ matrix.python-version }})
+    name: compatibility (Python ${{ matrix.python-version }}, Mellea ${{ matrix.mellea-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14"]
+        mellea-version: ["0.7.0", "0.8.0"]
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -30,13 +31,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install package and quality dependencies
-        run: make install PYTHON=python
+        run: make install PYTHON=python MELLEA_VERSION=${{ matrix.mellea-version }}
 
       - name: Run lint, format, and type checks
-        run: make quality
+        run: make quality MELLEA_VERSION=${{ matrix.mellea-version }}
 
       - name: Run tests and enforce branch coverage
-        run: make test
+        run: make test MELLEA_VERSION=${{ matrix.mellea-version }}
 
       - name: Check patch whitespace
         run: make committed-diff-check

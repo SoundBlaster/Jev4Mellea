@@ -16,8 +16,10 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mellea = ["mellea==0.7.0"]
+mellea = ["mellea>=0.7.0,<0.9.0"]
+openai = ["openai>=3.26.0,<4"]
 dev = [
+    "openai>=3.26.0,<4",
     "mypy>=1.15,<2",
     "pytest>=8.3,<10",
     "pytest-cov>=6,<8",
@@ -37,7 +39,7 @@ pythonpath = ["src"]
 addopts = "-ra"
 markers = [
     "integration: requires the real Mellea distribution, but no model server",
-    "live: explicit opt-in; sends potentially billable requests to TypeSafe",
+    "live: explicit opt-in; sends potentially billable requests to a provider",
 ]
 
 [tool.ruff]

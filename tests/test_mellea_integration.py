@@ -14,9 +14,36 @@ import pytest
 pytest.importorskip("mellea", reason="Install .[mellea,dev] to test the real bridge.")
 from mellea.core import Context, Requirement, ValidationResult
 
-from mellea_jev import JevClassifier, JevClient, JevScorer, JevVerifier, ReviewRequired
+from mellea_jev import (
+    JevClassifier,
+    JevClient,
+    JevScorer,
+    JevVerifier,
+    OpenAIProvider,
+    ReviewRequired,
+)
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.mark.parametrize("p,expected", [(0.98, True), (0.02, False), (0.5, None)])
+def test_openai_real_requirement_validate_hook(p, expected):
+    from test_openai_provider import wire
+
+    context = Mock(spec=Context)
+    context.last_output.return_value = SimpleNamespace(value="Hello")
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json=wire(p)))
+    with OpenAIProvider("test", transport=transport) as provider:
+        req = JevVerifier(provider, "The answer is polite.").as_requirement()
+        assert isinstance(req, Requirement)
+        if expected is None:
+            with pytest.raises(ReviewRequired):
+                asyncio.run(req.validate(backend=None, ctx=context))
+        else:
+            result = asyncio.run(req.validate(backend=None, ctx=context))
+            assert isinstance(result, ValidationResult)
+            assert bool(result) is expected
+            assert result.score == p
 
 
 @pytest.mark.parametrize("p,expected", [(0.98, True), (0.02, False), (0.5, None)])

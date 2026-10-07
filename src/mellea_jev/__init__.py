@@ -29,7 +29,17 @@ from .contracts import (
     ScoreProvider,
     ScoreResponse,
 )
-from .providers import LayaAgent, LayaProtocolError, LayaProvider, TypeSafeProvider
+from .providers import (
+    LayaAgent,
+    LayaProtocolError,
+    LayaProvider,
+    OpenAIHTTPError,
+    OpenAIProtocolError,
+    OpenAIProvider,
+    OpenAIProviderError,
+    OpenAIRefusalError,
+    TypeSafeProvider,
+)
 from .results import UsageMetadata
 from .verifier import (
     GenerationRejected,
@@ -79,5 +89,10 @@ __all__ = [
     "LayaProvider",
     "LayaProtocolError",
     "UsageMetadata",
+    "OpenAIProvider",
+    "OpenAIProviderError",
+    "OpenAIHTTPError",
+    "OpenAIProtocolError",
+    "OpenAIRefusalError",
 ]
 __version__ = "0.1.1"

@@ -3,7 +3,7 @@
 [![CI](https://github.com/SoundBlaster/Jev4Mellea/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/SoundBlaster/Jev4Mellea/actions/workflows/ci.yml)
 [![Version](https://img.shields.io/github/v/tag/SoundBlaster/Jev4Mellea?label=version)](https://github.com/SoundBlaster/Jev4Mellea/tags)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue?logo=python&logoColor=white)
-![Mellea 0.7.0](https://img.shields.io/badge/Mellea-0.7.0-6f42c1)
+![Mellea 0.7–0.8](https://img.shields.io/badge/Mellea-0.7%E2%80%930.8-6f42c1)
 ![TypeSafe SDK 0.7.x](https://img.shields.io/badge/TypeSafe%20SDK-0.7.x-6f42c1)
 [![Coverage gate: 80%](https://img.shields.io/badge/coverage%20gate-%E2%89%A580%25-success)](https://github.com/SoundBlaster/Jev4Mellea/blob/main/pyproject.toml#L68-L70)
 
@@ -58,6 +58,57 @@ are installed, `make demo` runs without a key or network access using a mocked
 Jev response.
 
 ## Examples
+
+### Verify with OpenAI Decisions API
+
+From a checkout, install the optional official SDK with
+`pip install -e '.[openai]'` and set `OPENAI_API_KEY`.
+The Decisions API is in public beta; this provider currently supports Noul
+verification through a single `predicate` question.
+
+```python
+from mellea_jev import JevVerifier, OpenAIProvider
+
+with OpenAIProvider() as provider:
+    verifier = JevVerifier(
+        provider,
+        "The candidate gives the opening time supported by the reference.",
+        reference="The museum opens at 10:00.",
+        accept_at=0.90,
+        reject_at=0.10,
+    )
+    verdict = verifier.evaluate("The museum opens at 10:00.")
+    print(verdict.outcome, verdict.p_yes, verdict.request_id)
+    requirement = verifier.as_requirement()
+```
+
+The provider sends the state dictionary as JSON text in `input`. Optional Noul
+`criteria` descriptions are appended as JSON to the predicate instructions;
+Decisions predicates do not have a separate outcome-criteria field. Refusals
+raise `OpenAIRefusalError`; transport, HTTP, and invalid-response errors raise
+`OpenAIProviderError` subclasses. These errors never become accepted verdicts.
+Requests use the official endpoint by default, without automatic retries or redirects.
+For CoreInfra or another gateway, pass an explicit `base_url` (including the API
+prefix such as `/v1`) and the gateway's key:
+
+```python
+import os
+
+with OpenAIProvider(
+    api_key=os.environ["COREINFRA_API_KEY"],
+    base_url="https://your-gateway.example/v1",
+) as provider:
+    result = provider.noul(state={"candidate": "Hello!"}, question="Is it a greeting?")
+```
+
+The gateway must implement the Decisions `/decisions` contract; support for
+Chat Completions alone is insufficient. The configured URL receives the supplied
+key. HTTP and HTTPS URLs are supported; `OPENAI_BASE_URL` is ignored.
+Thresholds require evaluation on your own data before comparing them with Jev.
+
+From a development checkout, `make openai-live-test` sends one potentially
+billable request when `OPENAI_API_KEY` is set. Ordinary tests skip live requests
+even when a key is present. See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions).
 
 ### Verify a requirement with Noul
 
@@ -341,22 +392,25 @@ private or sensitive examples or prediction snapshots.
 ## Requirements and compatibility
 
 - Python **3.11 or newer**.
-- Mellea **0.7.0** for the `Requirement` integration.
+- Mellea **0.7.x or 0.8.x** for the `Requirement` integration.
 - TypeSafe API access and `TYPESAFE_API_KEY` for live Jev requests. Mocked tests and `make demo` need no key.
 - The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
+- OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
+  and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul only; `gpt-6-luna` is its default model.
 
 The CI compatibility matrix runs the package checks with these combinations:
 
 | Python | Mellea integration |
 | --- | --- |
-| 3.11 | 0.7.0 |
-| 3.12 | 0.7.0 |
-| 3.13 | 0.7.0 |
-| 3.14 | 0.7.0 |
+| 3.11 | 0.7.0, 0.8.0 |
+| 3.12 | 0.7.0, 0.8.0 |
+| 3.13 | 0.7.0, 0.8.0 |
+| 3.14 | 0.7.0, 0.8.0 |
 
-The Mellea extra is pinned to 0.7.0; other Mellea versions are not currently
-declared compatible.
+The Mellea extra accepts `>=0.7.0,<0.9.0`. Development commands default to 0.8.0;
+run `make check MELLEA_VERSION=0.7.0` to check the older supported release.
+CI checks both listed releases; other minor versions are not declared compatible.
 
 The Mellea requirement callback is synchronous, so a Jev request can block the
 event loop. This package does not provide an async client. If sampling has

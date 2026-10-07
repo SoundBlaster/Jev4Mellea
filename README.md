@@ -59,6 +59,41 @@ Jev response.
 
 ## Examples
 
+### Verify with OpenAI Decisions API
+
+Install the optional official SDK with `pip install 'mellea-jev-adapter[openai]'`
+(or `pip install -e '.[openai]'` from a checkout) and set `OPENAI_API_KEY`.
+The Decisions API is in public beta; this provider currently supports Noul
+verification through a single `predicate` question.
+
+```python
+from mellea_jev import JevVerifier, OpenAIProvider
+
+with OpenAIProvider() as provider:
+    verifier = JevVerifier(
+        provider,
+        "The candidate gives the opening time supported by the reference.",
+        reference="The museum opens at 10:00.",
+        accept_at=0.90,
+        reject_at=0.10,
+    )
+    verdict = verifier.evaluate("The museum opens at 10:00.")
+    print(verdict.outcome, verdict.p_yes, verdict.request_id)
+    requirement = verifier.as_requirement()
+```
+
+The provider sends the state dictionary as JSON text in `input`. Optional Noul
+`criteria` descriptions are appended as JSON to the predicate instructions;
+Decisions predicates do not have a separate outcome-criteria field. Refusals
+raise `OpenAIRefusalError`; transport, HTTP, and invalid-response errors raise
+`OpenAIProviderError` subclasses. These errors never become accepted verdicts.
+Requests use the official endpoint, without automatic retries or redirects.
+Thresholds require evaluation on your own data before comparing them with Jev.
+
+From a development checkout, `make openai-live-test` sends one potentially
+billable request when `OPENAI_API_KEY` is set. Ordinary tests skip live requests
+even when a key is present. See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions).
+
 ### Verify a requirement with Noul
 
 Noul returns `p_yes`, the probability that a positively phrased requirement is
@@ -345,6 +380,8 @@ private or sensitive examples or prediction snapshots.
 - TypeSafe API access and `TYPESAFE_API_KEY` for live Jev requests. Mocked tests and `make demo` need no key.
 - The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
+- OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
+  and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul only; `gpt-6-luna` is its default model.
 
 The CI compatibility matrix runs the package checks with these combinations:
 

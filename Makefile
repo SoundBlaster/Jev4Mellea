@@ -9,7 +9,7 @@ EVAL_MODEL ?=
 EVAL_THRESHOLD ?= 0.10,0.90
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -21,10 +21,11 @@ help: ## Show the available development commands
 	  'quality          Run lint, formatting, and type checks' \
 	  'test             Run pytest with a branch-coverage threshold (live calls skipped)' \
 	  'check            Run quality checks, tests, coverage, and whitespace checks' \
-	  'test-integration Run real Mellea Requirement contract tests with mocked Jev HTTP' \
+	  'test-integration Run real Mellea Requirement contract tests with mocked provider HTTP' \
 	  'ollama-test      Run the local Ollama repair test; Jev HTTP is mocked' \
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
+	  'openai-live-test Run one explicitly enabled, potentially billable Decisions smoke test' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
 	  'live-evaluate    Explicitly run the labeled dataset through a model' \
@@ -58,7 +59,7 @@ test: $(VENV)/.installed ## Run tests and enforce the configured branch-coverage
 
 check: quality test diff-check ## Run the same quality gate used by GitHub Actions
 
-test-integration: $(VENV)/.installed ## Exercise the real Mellea Requirement.validate hook with Jev mocked
+test-integration: $(VENV)/.installed ## Exercise real Mellea Requirement.validate with mocked providers
 	$(PY) -m pytest -q tests/test_mellea_integration.py
 
 ollama-test: $(VENV)/.installed ## Exercise real local generation; Jev HTTP is mocked and no API key is used
@@ -72,6 +73,10 @@ live-test: $(VENV)/.installed ## Send explicitly enabled requests to TypeSafe; t
 live-check: $(VENV)/.installed ## Run one live Jev check using the sample input; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	$(PY) examples/live_check.py
+
+openai-live-test: $(VENV)/.installed ## Send one explicitly enabled request to OpenAI; may incur charges
+	@test -n "$${OPENAI_API_KEY:-}" || { echo 'Set OPENAI_API_KEY first.' >&2; exit 2; }
+	RUN_LIVE_OPENAI=1 $(PY) -m pytest -q tests/test_live_openai.py
 
 mellea-ollama: $(VENV)/.installed ## Run the Mellea + Ollama example; Jev requests may incur charges
 	@test -n '$(OLLAMA_MODEL)' || { echo 'Set OLLAMA_MODEL to a model already installed in Ollama.' >&2; exit 2; }

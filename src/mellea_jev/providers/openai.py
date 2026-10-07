@@ -43,8 +43,9 @@ class OpenAIProvider:
     criteria are appended to the predicate instructions as JSON. Image input,
     batching, Choice, and Score are outside this provider's current interface.
 
-    Only the official endpoint is used; environment proxies and redirects are
-    disabled. Requests are never automatically retried. Timeout is per HTTP
+    The official endpoint is the default. ``base_url`` explicitly selects a
+    compatible gateway; OPENAI_BASE_URL is not read. Environment proxies and
+    redirects are disabled. Requests are never automatically retried. Timeout is per HTTP
     operation, not an end-to-end deadline. Close with a context manager.
     """
 
@@ -53,6 +54,7 @@ class OpenAIProvider:
         api_key: str | None = None,
         *,
         model: str = "gpt-6-luna",
+        base_url: str = BASE_URL,
         timeout: float = 10.0,
         transport: httpx2.BaseTransport | None = None,
     ) -> None:
@@ -65,6 +67,24 @@ class OpenAIProvider:
             raise ValueError("model must be a nonempty string.")
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive.")
+        if not isinstance(base_url, str) or any(ch.isspace() for ch in base_url):
+            raise ValueError(
+                "base_url must be an absolute HTTP(S) URL without credentials or query."
+            )
+        try:
+            url = httpx2.URL(base_url)
+        except httpx2.InvalidURL:
+            raise ValueError("base_url must be a valid HTTP(S) URL.") from None
+        if (
+            not url.is_absolute_url
+            or url.scheme not in ("http", "https")
+            or url.userinfo
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "base_url must be an absolute HTTP(S) URL without credentials or query."
+            )
         try:
             from openai import OpenAI, OpenAIError
         except ImportError:
@@ -79,7 +99,7 @@ class OpenAIProvider:
         try:
             self._client = OpenAI(
                 api_key=key,
-                base_url=BASE_URL,
+                base_url=base_url,
                 timeout=timeout,
                 max_retries=0,
                 http_client=http_client,

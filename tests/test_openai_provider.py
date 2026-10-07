@@ -63,6 +63,56 @@ def test_sdk_request_metadata_and_provider_contract(monkeypatch):
     assert len(requests) == 1
 
 
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "https://gateway.example/v1",
+        "https://gateway.example/core/openai/v1/",
+        "http://localhost:8080/v1",
+    ],
+)
+def test_explicit_gateway_base_url(base_url, monkeypatch):
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://untrusted.example/v1")
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        assert str(request.url) == base_url.rstrip("/") + "/decisions"
+        assert request.headers["authorization"] == "Bearer gateway-key"
+        assert json.loads(request.content)["questions"][0]["type"] == "predicate"
+        return httpx2.Response(200, json=wire(), headers={"x-request-id": "gateway-request"})
+
+    with OpenAIProvider(
+        "gateway-key", base_url=base_url, transport=httpx2.MockTransport(handler)
+    ) as provider:
+        assert provider.noul(state={}, question="Valid?").request_id == "gateway-request"
+    assert len(requests) == 1
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        None,
+        1,
+        "",
+        "/v1",
+        "ftp://gateway.example/v1",
+        "https://",
+        " https://gateway.example",
+        "https://user:secret@gateway.example/v1",
+        "https://gateway.example/v1?key=secret",
+        "https://gateway.example/v1#fragment",
+        "http://gateway.example:bad/v1",
+    ],
+)
+def test_invalid_base_url_never_creates_a_client(base_url):
+    with pytest.raises(ValueError) as captured:
+        OpenAIProvider(
+            "test-key", base_url=base_url, transport=httpx2.MockTransport(lambda _: pytest.fail())
+        )
+    assert "secret" not in str(captured.value)
+
+
 def test_outcome_criteria_are_explicit_instruction_data():
     criteria = {"true": {"examples": ["ASAP"]}, "false": ["No time pressure", None]}
 
@@ -160,7 +210,8 @@ def test_refusal_is_an_explicit_failure():
 
 
 @pytest.mark.parametrize("status", [302, 401, 429, 500])
-def test_http_errors_are_safe_no_retries_or_redirects(status):
+@pytest.mark.parametrize("base_url", ["https://api.openai.com/v1", "https://gateway.example/v1"])
+def test_http_errors_are_safe_no_retries_or_redirects(status, base_url):
     requests = []
 
     def handler(request):
@@ -171,7 +222,9 @@ def test_http_errors_are_safe_no_retries_or_redirects(status):
             headers={"location": "https://untrusted.example", "x-should-retry": "true"},
         )
 
-    with OpenAIProvider("test-key", transport=httpx2.MockTransport(handler)) as client:
+    with OpenAIProvider(
+        "test-key", base_url=base_url, transport=httpx2.MockTransport(handler)
+    ) as client:
         with pytest.raises(OpenAIHTTPError) as captured:
             client.noul(state={}, question="Valid?")
     assert captured.value.status_code == status

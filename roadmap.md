@@ -109,10 +109,10 @@ plugin discovery.
 
 ## Completed — Compatibility matrix (PR #22)
 
-- The project declares Python 3.11+ and pins the Mellea integration to 0.7.0.
+- The project declares Python 3.11+ and supports Mellea `>=0.7.0,<0.9.0`.
 - CI runs the quality and test suites on Python 3.11, 3.12, 3.13, and 3.14
-  with Mellea 0.7.0. Other Mellea versions are not currently declared
-  compatible.
+  with Mellea 0.7.0 and 0.8.0 (expanded in PR #29). Other minor versions are
+  not currently declared compatible.
 
 ## Before production use
 

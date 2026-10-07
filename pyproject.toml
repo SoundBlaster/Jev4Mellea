@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-mellea = ["mellea==0.7.0"]
+mellea = ["mellea>=0.7.0,<0.9.0"]
 openai = ["openai>=3.26.0,<4"]
 dev = [
     "openai>=3.26.0,<4",

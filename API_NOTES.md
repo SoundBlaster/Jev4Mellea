@@ -85,14 +85,23 @@ predicate не имеет отдельного поля критериев true/
 изображений в словаре остаются текстом; визуальные запросы не поддержаны.
 
 SDK подключается только при создании провайдера через extra `openai`.
-Endpoint фиксирован, редиректы и environment proxies отключены,
+По умолчанию используется официальный endpoint. Явный `base_url` выбирает
+CoreInfra или другой gateway, реализующий Decisions API: путь `/decisions`
+добавляется к переданному API-префиксу. `OPENAI_BASE_URL` игнорируется.
+Допустимы абсолютные HTTP(S) URL без credentials, query и fragment.
+API key отправляется на явно выбранный адрес; live-совместимость CoreInfra
+не проверена. Редиректы и environment proxies отключены,
 `max_retries=0`. Live-проверка запускается только через явный opt-in
 `RUN_LIVE_OPENAI=1` и `OPENAI_API_KEY` либо `make openai-live-test`.
 Калибровка порогов относительно Jev, Choice и Score остаются задачами roadmap.
 
 ## Mellea
 
-Цель: `mellea==0.7.0`, Python >=3.11.
+Цель: `mellea>=0.7.0,<0.9.0`, Python >=3.11. Исходные ссылки ниже относятся
+к 0.7.0; повторная проверка на установленном Mellea 0.8.0 выполнена
+2026-10-07: настоящие `Requirement.validate`, `ValidationResult` и
+интеграция Noul/Choice/Score прошли существующие contract-тесты.
+CI проверяет обе версии на всех поддерживаемых версиях Python.
 
 - [Write Custom Verifiers](https://docs.mellea.ai/how-to/write-custom-verifiers):
   `Requirement(description, validation_fn=...)` и `ValidationResult`.

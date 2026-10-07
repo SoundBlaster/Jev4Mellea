@@ -21,43 +21,38 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
    contracts against this second API and document differences such as its
    entropy-based Choice confidence.
 4. **Proposed — OpenAI decision evaluator through the official Python SDK.**
-   OpenAI's [DevDay 2026 recap](https://openai.com/index/devday-2026-recap/)
-   announced the Decisions API as a capability that focuses Luna's
-   intelligence on developer-defined questions with finite answers. It accepts
-   text or image context and is intended for classification, routing, and agent
-   action selection. The announcement described a limited preview and a broader
-   release planned in the following days. This is an API capability built on
-   Luna, not a separately announced model.
+   **Evidence checked October 7, 2026.** Following the DevDay limited preview,
+   OpenAI [announced public beta on October 6](https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877),
+   available to all developers. The [Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
+   identifies `gpt-6-luna` as the only supported model, with general availability
+   expected in the coming weeks. Public beta permits integration work; GA and
+   a successful request from our account remain separate evidence.
 
-   The announcement does not provide a technical API contract. At the time of
-   this roadmap update, no Decisions API contract is present in the checked
-   [OpenAI API documentation](https://developers.openai.com/api/docs) or
-   [API changelog](https://developers.openai.com/api/docs/changelog). Before
-   implementation, verify the endpoint, official Python SDK surface, preview
-   access, model availability, option limits, confidence semantics, latency,
-   and pricing from official technical sources. The
-   [SDK and CLI page](https://developers.openai.com/api/docs/libraries) lists
-   Swift clients among community libraries and says OpenAI does not verify
-   their correctness or security; do not treat a Swift client as an official
-   SDK. Latency claims in the
-   [New Stack report](https://thenewstack.io/openai-decision-api-luna/) remain
-   unverified by the official sources checked here.
-   - If an official Decisions API and a supported official Python SDK surface
-     become available, build an explicitly constructed `OpenAIProvider` on
-     that SDK, implementing the existing Noul, Choice, and Score protocols.
-     Keep the `openai` dependency optional, let client code select the model,
-     and keep OpenAI SDK types out of the Mellea-facing contracts.
-   - If there is no usable dedicated endpoint, evaluate the Responses API with
-     Structured Outputs as a fallback. Structured Outputs can enforce a
-     response schema, but semantic correctness and score calibration still
-     require evaluation; see the
-     [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs).
-   - Establish the meaning of Noul probabilities and Choice/Score confidence
-     before treating them as comparable to Jev results. Cover request mapping,
-     refusal, malformed, and incomplete responses with mocked SDK tests; keep
-     live tests opt-in. Compare OpenAI, TypeSafe, and Laya on the same versioned
+   The technical contract is now published: `POST /v1/decisions`, shared text
+   or image input, and `predicate`, `choice`, and `score` questions. The guide
+   requires Python SDK 3.26.0 or later; the official
+   [Python API reference](https://developers.openai.com/api/reference/python/resources/decisions/methods/create)
+   documents `client.decisions.create(...)`. Decisions is an API capability
+   backed by Luna. OpenAI now reports faster decisions than the Responses API;
+   measure latency on our own workload before making package performance claims.
+   Implement each stage in a separate pull request:
+   - **Noul foundation.** Construct `OpenAIProvider` explicitly using the
+     official Python SDK, with an optional `openai` dependency. Map a single
+     predicate answer to `NoulResult`, retaining model, request ID, and usage.
+     Keep SDK types out of Mellea contracts, retries explicitly disabled, and
+     errors safe. Verify SDK-version compatibility, request mapping, refusal,
+     and malformed or missing answers with mocks; add an opt-in live smoke test.
+   - **Choice.** Adapt configured labels and criteria to fixed choices and
+     return `ChoiceResult`. Validate selected labels, distributions, and
+     confidence semantics against the documented contract. Preserve existing
+     Mellea classifier and requirement interfaces through the Choice protocol.
+   - **Score.** Adapt the configured scale and rubric to score levels and
+     return `ScoreResult`. Establish how the vendor's score and confidence map
+     to our scale; reject unsupported mappings explicitly.
+   - **Evaluation.** Compare OpenAI, TypeSafe, and Laya on the same versioned
      labeled dataset for false-acceptance, false-rejection, uncertain rates,
-     latency, and cost before making quality or threshold-equivalence claims.
+     latency, and cost. Keep live runs opt-in and establish calibration before
+     claiming comparable confidence or interchangeable thresholds.
 5. **Deferred.** Keep provider construction explicit. Revisit configuration or
    entry-point discovery if client projects need dynamic provider selection and
    there is clear ownership for maintaining the integration.

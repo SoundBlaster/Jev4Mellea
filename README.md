@@ -61,8 +61,8 @@ Jev response.
 
 ### Verify with OpenAI Decisions API
 
-Install the optional official SDK with `pip install 'mellea-jev-adapter[openai]'`
-(or `pip install -e '.[openai]'` from a checkout) and set `OPENAI_API_KEY`.
+From a checkout, install the optional official SDK with
+`pip install -e '.[openai]'` and set `OPENAI_API_KEY`.
 The Decisions API is in public beta; this provider currently supports Noul
 verification through a single `predicate` question.
 

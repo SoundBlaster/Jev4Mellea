@@ -286,7 +286,8 @@ def _to_sdk_question(question: TypeSafeQuestion) -> SDKNoul | SDKChoice | SDKSco
 class TypeSafeProvider:
     """Synchronous TypeSafe provider with single and batched question methods.
 
-    Only the official HTTPS endpoint is used. ``transport`` is the SDK's
+    The official endpoint is the default; ``base_url`` explicitly selects a
+    compatible gateway root before ``/v1/systemone``. ``transport`` is the SDK's
     synchronous transport seam, primarily for tests rather than untrusted
     per-request configuration.
     There are no hidden retries. HTTP timeout is per operation, not an
@@ -299,6 +300,7 @@ class TypeSafeProvider:
         *,
         model: str = "jev-latest",
         timeout: float = 10.0,
+        base_url: str = BASE_URL,
         transport: httpx2.BaseTransport | None = None,
     ) -> None:
         key = os.environ.get("TYPESAFE_API_KEY", "") if api_key is None else api_key
@@ -310,6 +312,22 @@ class TypeSafeProvider:
             raise ValueError("model must be a nonempty string.")
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive.")
+        if not isinstance(base_url, str) or any(ch.isspace() for ch in base_url):
+            raise ValueError("base_url must be a valid HTTP(S) URL.")
+        try:
+            url = httpx2.URL(base_url)
+        except httpx2.InvalidURL:
+            raise ValueError("base_url must be a valid HTTP(S) URL.") from None
+        if (
+            not url.is_absolute_url
+            or url.scheme not in ("http", "https")
+            or url.userinfo
+            or url.query
+            or url.fragment
+        ):
+            raise ValueError(
+                "base_url must be an absolute HTTP(S) URL without credentials or query."
+            )
         self.model = model
         http_client = httpx2.Client(
             timeout=timeout,
@@ -322,7 +340,7 @@ class TypeSafeProvider:
             model=model,
             retry=RetryPolicy(max_retries=0),
             timeout=timeout,
-            base_url=BASE_URL,
+            base_url=base_url,
             http_client=http_client,
         )
 

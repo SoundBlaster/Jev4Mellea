@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from mellea_jev import JevClient, JevError, JevVerifier
+from mellea_jev.providers.typesafe import BASE_URL
 
 
 def main() -> int:
@@ -15,12 +16,18 @@ def main() -> int:
     parser.add_argument("--requirement", default="The candidate contains a polite greeting.")
     parser.add_argument("--reference-file", type=Path)
     parser.add_argument("--model", default=os.environ.get("JEV_MODEL", "jev-latest"))
+    parser.add_argument("--base-url", default=BASE_URL)
+    parser.add_argument("--api-key-env", default="TYPESAFE_API_KEY")
     parser.add_argument("--accept-at", type=float, default=0.90)
     parser.add_argument("--reject-at", type=float, default=0.10)
     args = parser.parse_args()
     try:
         reference = args.reference_file.read_text(encoding="utf-8") if args.reference_file else None
-        with JevClient(model=args.model) as client:
+        with JevClient(
+            api_key=os.environ.get(args.api_key_env, ""),
+            model=args.model,
+            base_url=args.base_url,
+        ) as client:
             verifier = JevVerifier(
                 client,
                 args.requirement,

@@ -59,6 +59,33 @@ Jev response.
 
 ## Examples
 
+### Jev through CoreInfra
+
+Use a CoreInfra key and explicitly select the TypeSafe API root. The SDK adds
+`/v1/systemone`; do not include that suffix in `base_url`.
+
+```python
+import os
+from mellea_jev import JevClient, NoulQuestion
+
+with JevClient(
+    api_key=os.environ["COREINFRA_API_KEY"],
+    base_url="https://hub.coreinfra.ai/typesafe/api",
+    model="jev-latest",
+) as jev:
+    result = jev.system_one(
+        state={"text": "CoreInfra provides Jev through its Hub API."},
+        questions={"supported": NoulQuestion("Does CoreInfra support Jev?")},
+    )
+    print(result.answers["supported"])
+```
+
+The adapter retains its dictionary `state` contract. Without an explicit
+`base_url`, it uses the official TypeSafe endpoint and ignores
+`TYPESAFE_BASE_URL`. Requests never follow redirects or retry automatically.
+From a checkout, `make coreinfra-live-check` runs one potentially billable
+verification with `COREINFRA_API_KEY`; CI uses mocks.
+
 ### Verify with OpenAI Decisions API
 
 From a checkout, install the optional official SDK with

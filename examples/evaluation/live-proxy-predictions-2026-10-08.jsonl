@@ -1,0 +1,5 @@
+{"dataset": "museum-opening-time", "dataset_sha256": "a7d79ab5facd2648460c48b52f900b2ca8f5ebaf56e196107e357f4d2492ca3f", "dataset_version": "1.0.0", "format_version": 1, "type": "prediction_set"}
+{"id": "correct-time", "model": "jev-1.13.0", "p_yes": 0.98, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "wrong-time", "model": "jev-1.13.0", "p_yes": 0.01, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "correct-with-context", "model": "jev-1.13.0", "p_yes": 0.97, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "closing-time-confusion", "model": "jev-1.13.0", "p_yes": 0.02, "provider": "typesafe-proxy", "type": "prediction"}

@@ -8,6 +8,10 @@ EVAL_DATASET ?= examples/evaluation/museum_opening.jsonl
 EVAL_PREDICTIONS ?=
 EVAL_PROVIDER ?= typesafe
 EVAL_MODEL ?=
+EVAL_BASE_URL ?=
+EVAL_API_KEY_ENV ?=
+EVAL_PROVIDER_LABEL ?=
+export EVAL_BASE_URL EVAL_API_KEY_ENV EVAL_PROVIDER_LABEL
 EVAL_THRESHOLD ?= 0.10,0.90
 
 .DEFAULT_GOAL := help
@@ -97,7 +101,11 @@ evaluate: $(INSTALL_STAMP) ## Compute metrics from saved predictions; performs n
 	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --predictions '$(EVAL_PREDICTIONS)' --threshold '$(EVAL_THRESHOLD)'
 
 live-evaluate: $(INSTALL_STAMP) ## Explicitly evaluate labeled examples; may send text or download a local model
-	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --live --provider '$(EVAL_PROVIDER)' $(if $(EVAL_MODEL),--model '$(EVAL_MODEL)',) --threshold '$(EVAL_THRESHOLD)' $(if $(EVAL_PREDICTIONS),--save-predictions '$(EVAL_PREDICTIONS)',)
+	@set --; \
+	if [ -n "$${EVAL_BASE_URL:-}" ]; then set -- "$$@" --base-url "$$EVAL_BASE_URL"; fi; \
+	if [ -n "$${EVAL_API_KEY_ENV:-}" ]; then set -- "$$@" --api-key-env "$$EVAL_API_KEY_ENV"; fi; \
+	if [ -n "$${EVAL_PROVIDER_LABEL:-}" ]; then set -- "$$@" --provider-label "$$EVAL_PROVIDER_LABEL"; fi; \
+	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --live --provider '$(EVAL_PROVIDER)' $(if $(EVAL_MODEL),--model '$(EVAL_MODEL)',) --threshold '$(EVAL_THRESHOLD)' $(if $(EVAL_PREDICTIONS),--save-predictions '$(EVAL_PREDICTIONS)',) "$$@"
 
 diff-check: ## Check staged and unstaged changes for whitespace errors
 	git diff --check HEAD

@@ -387,6 +387,37 @@ python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
   --threshold 0.10,0.90 --save-predictions /tmp/museum-predictions.jsonl
 ```
 
+For a TypeSafe-compatible Proxy, explicitly select its API root and the
+environment variable containing its key. The SDK adds `/v1/systemone` to the
+root. This example sends the dataset to your configured Proxy:
+
+```bash
+python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
+  --live --provider typesafe --model jev-latest \
+  --base-url https://proxy.example/typesafe/api --api-key-env PROXY_API_KEY \
+  --provider-label typesafe-proxy-a \
+  --save-predictions /tmp/proxy-predictions.jsonl
+```
+
+Replace the placeholder URL and set `PROXY_API_KEY` before running. The
+equivalent Makefile command is:
+
+```bash
+make live-evaluate EVAL_PROVIDER=typesafe \
+  EVAL_BASE_URL=https://proxy.example/typesafe/api EVAL_API_KEY_ENV=PROXY_API_KEY \
+  EVAL_PROVIDER_LABEL=typesafe-proxy-a EVAL_PREDICTIONS=/tmp/proxy-predictions.jsonl
+```
+
+`--provider` selects the implementation; `--provider-label` sets the `provider`
+field in saved predictions and metric groups. With an explicit `--base-url`,
+the default label is `typesafe-proxy`; otherwise it is the implementation name.
+Use distinct labels for distinct Proxy sources, even if they return the same
+model name. An explicit `--base-url` requires `--api-key-env`. Connection flags
+require live TypeSafe mode; labels require live
+mode and can also distinguish Laya checkpoints. URLs and keys are not saved in
+prediction snapshots. Without connection flags, TypeSafe still uses its
+official endpoint and `TYPESAFE_API_KEY`; offline scoring remains unchanged.
+
 To compare multiple threshold pairs or reproduce a report, load the saved
 predictions offline. No provider is constructed and no request is sent:
 

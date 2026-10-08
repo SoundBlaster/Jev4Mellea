@@ -46,6 +46,24 @@ def test_openai_real_requirement_validate_hook(p, expected):
             assert result.score == p
 
 
+@pytest.mark.parametrize("expected_label,expected", [("billing", True), ("technical", False)])
+def test_openai_choice_real_requirement_validate_hook(expected_label, expected):
+    from test_openai_choice import choice_wire
+
+    ctx = Mock(spec=Context)
+    ctx.last_output.return_value = SimpleNamespace(value="Charged twice")
+    transport = httpx2.MockTransport(lambda _: httpx2.Response(200, json=choice_wire()))
+    with OpenAIProvider("test", transport=transport) as provider:
+        req = JevClassifier(
+            provider, "Which team?", criteria={"billing": None, "technical": None}
+        ).as_requirement(expected_label, minimum_confidence=0.90)
+        result = asyncio.run(req.validate(backend=None, ctx=ctx))
+    assert isinstance(req, Requirement)
+    assert isinstance(result, ValidationResult)
+    assert bool(result) is expected
+    assert result.score == (0.95 if expected else 0.05)
+
+
 @pytest.mark.parametrize("p,expected", [(0.98, True), (0.02, False), (0.5, None)])
 def test_real_requirement_validate_hook(p, expected):
     context = Mock(spec=Context)

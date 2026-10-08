@@ -67,7 +67,11 @@ def test_sdk_request_metadata_and_provider_contract(monkeypatch):
     "base_url",
     [
         "https://gateway.example/v1",
+        "https://gateway.example/v1/",
         "https://gateway.example/core/openai/v1/",
+        "https://gateway.example/core/openai/v1",
+        "https://gateway.example",
+        "https://gateway.example/",
         "http://localhost:8080/v1",
     ],
 )

@@ -36,13 +36,13 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
    backed by Luna. OpenAI now reports faster decisions than the Responses API;
    measure latency on our own workload before making package performance claims.
    Implement each stage in a separate pull request:
-   - **In review (PR #29) — Noul foundation.** Construct `OpenAIProvider` explicitly using the
+   - **Completed — Noul foundation.** Construct `OpenAIProvider` explicitly using the
      official Python SDK, with an optional `openai` dependency. Map a single
      predicate answer to `NoulResult`, retaining model, request ID, and usage.
      Keep SDK types out of Mellea contracts, retries explicitly disabled, and
      errors safe. Verify SDK-version compatibility, request mapping, refusal,
      and malformed or missing answers with mocks; add an opt-in live smoke test.
-   - **Choice.** Adapt configured labels and criteria to fixed choices and
+   - **Implemented in the OpenAI stack — Choice.** Adapt configured labels and criteria to fixed choices and
      return `ChoiceResult`. Validate selected labels, distributions, and
      confidence semantics against the documented contract. Preserve existing
      Mellea classifier and requirement interfaces through the Choice protocol.

@@ -93,7 +93,17 @@ API key отправляется на явно выбранный адрес; li
 Proxy с Decisions API требует отдельной проверки. Редиректы и environment proxies отключены,
 `max_retries=0`. Live-проверка запускается только через явный opt-in
 `RUN_LIVE_OPENAI=1` и `OPENAI_API_KEY` либо `make openai-live-test`.
-Калибровка порогов относительно Jev, Choice и Score остаются задачами roadmap.
+Choice преобразует строковые ключи критериев в `choices[].value`; текстовые
+описания передаются без изменения, структурированные — как JSON-текст.
+Ответ преобразуется в `ChoiceResult`: `choice`, отдельный `confidence`, полное
+распределение, модель, request ID и usage. Boolean choices не входят в контракт
+адаптера. Провайдер проверяет лимит 2–255 вариантов до HTTP-запроса согласно
+[API reference](https://developers.openai.com/api/reference/resources/decisions/methods/create).
+Неизвестные, повторяющиеся или отсутствующие метки отклоняются;
+выбранная метка должна иметь максимальную вероятность. `confidence` не
+подменяется вероятностью выбранной метки. Работают существующие
+`JevClassifier` и `as_requirement` без SDK-типов в интерфейсе Mellea.
+Калибровка порогов относительно Jev и Score остаются задачами roadmap.
 
 ## Mellea
 

@@ -91,8 +91,8 @@ Replace the example URL with your Proxy's API root. From a checkout,
 
 From a checkout, install the optional official SDK with
 `pip install -e '.[openai]'` and set `OPENAI_API_KEY`.
-The Decisions API is in public beta; this provider currently supports Noul
-verification through a single `predicate` question.
+The Decisions API is in public beta. This provider supports Noul verification
+and Choice classification, with one question per request.
 
 ```python
 from mellea_jev import JevVerifier, OpenAIProvider
@@ -109,6 +109,25 @@ with OpenAIProvider() as provider:
     print(verdict.outcome, verdict.p_yes, verdict.request_id)
     requirement = verifier.as_requirement()
 ```
+
+The same provider works with the existing classifier and Mellea requirement:
+
+```python
+from mellea_jev import JevClassifier, OpenAIProvider
+
+with OpenAIProvider() as provider:
+    classifier = JevClassifier(
+        provider,
+        "Which team should handle the request?",
+        criteria={"billing": "Payments and refunds", "technical": "Product errors"},
+    )
+    result = classifier.classify("I was charged twice.")
+    print(result.choice, result.confidence, result.probabilities)
+    requirement = classifier.as_requirement("billing", minimum_confidence=0.80)
+```
+
+Choice preserves the SDK's confidence separately from the label probabilities.
+Labels must be strings and the response must contain the complete configured distribution.
 
 The provider sends the state dictionary as JSON text in `input`. Optional Noul
 `criteria` descriptions are appended as JSON to the predicate instructions;
@@ -459,7 +478,7 @@ private or sensitive examples or prediction snapshots.
 - The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 - OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
-  and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul only; `gpt-6-luna` is its default model.
+  and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul and Choice; `gpt-6-luna` is its default model.
 
 The CI compatibility matrix runs the package checks with these combinations:
 

@@ -32,7 +32,7 @@ help: ## Show the available development commands
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
 	  'proxy-live-check Run one potentially billable Jev check through a Proxy' \
-	  'openai-live-test Run one explicitly enabled, potentially billable Decisions smoke test' \
+	  'openai-live-test Run three opt-in Decisions smoke tests (Noul, Choice, Score; billable)' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
 	  'live-evaluate    Explicitly run the labeled dataset through a model' \
@@ -87,9 +87,9 @@ live-check: $(INSTALL_STAMP) ## Run one live Jev check using the sample input; t
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	$(PY) examples/live_check.py
 
-openai-live-test: $(INSTALL_STAMP) ## Send one explicitly enabled request to OpenAI; may incur charges
+openai-live-test: $(INSTALL_STAMP) ## Send up to three opt-in OpenAI requests (one per primitive); may incur charges
 	@test -n "$${OPENAI_API_KEY:-}" || { echo 'Set OPENAI_API_KEY first.' >&2; exit 2; }
-	RUN_LIVE_OPENAI=1 $(PY) -m pytest -q tests/test_live_openai.py
+	RUN_LIVE_OPENAI=1 $(PY) -m pytest -q -x --tb=short tests/test_live_openai.py
 
 mellea-ollama: $(INSTALL_STAMP) ## Run the Mellea + Ollama example; Jev requests may incur charges
 	@test -n '$(OLLAMA_MODEL)' || { echo 'Set OLLAMA_MODEL to a model already installed in Ollama.' >&2; exit 2; }

@@ -170,9 +170,27 @@ Chat Completions alone is insufficient. The configured URL receives the supplied
 key. HTTP and HTTPS URLs are supported; `OPENAI_BASE_URL` is ignored.
 Thresholds require evaluation on your own data before comparing them with Jev.
 
-From a development checkout, `make openai-live-test` sends one potentially
-billable request when `OPENAI_API_KEY` is set. Ordinary tests skip live requests
-even when a key is present. See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions).
+From a development checkout, set `OPENAI_API_KEY` locally and run:
+
+```bash
+make openai-live-test
+```
+
+This explicitly opts in to up to three potentially billable requests to the
+official endpoint: one each for Noul, Choice, and Score. The command stops at
+the first failure; requests have no automatic retries. To run just one primitive:
+
+```bash
+RUN_LIVE_OPENAI=1 .venv/bin/python -m pytest -q -x --tb=short \
+  tests/test_live_openai.py -k choice
+```
+
+These are contract smoke tests: they check valid probabilities, complete labels
+or score levels, response model and request ID, and Choice/Score token usage.
+They do not assert a particular class, confidence threshold, or semantic score.
+Refusal and API failures fail the test. Ordinary tests skip live requests even
+when a key is present; direct pytest runs require both `RUN_LIVE_OPENAI=1` and
+`OPENAI_API_KEY`. See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions).
 
 ### Verify a requirement with Noul
 

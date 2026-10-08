@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 — 2026-10-08
+
+- Replace vendor-specific gateway examples with an abstract Proxy in the
+  README, API notes, and mock fixtures.
+- Replace `make coreinfra-live-check` with `make proxy-live-check`. Set
+  `PROXY_BASE_URL` and `PROXY_API_KEY` explicitly; the helper uses a neutral
+  greeting example and does not hardcode a vendor URL.
+- Preserve the provider APIs and the historical 0.2.0 live-check results.
+
 ## 0.2.0 — 2026-10-08
 
 - Add an optional OpenAI Decisions provider for Noul verification through the

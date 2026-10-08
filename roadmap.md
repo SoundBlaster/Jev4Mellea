@@ -20,7 +20,7 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
    API, with the dependency and model loading kept optional. Exercise the
    contracts against this second API and document differences such as its
    entropy-based Choice confidence.
-4. **Proposed — OpenAI decision evaluator through the official Python SDK.**
+4. **Noul foundation completed; Choice, Score, and evaluation implemented in the OpenAI stack.**
    **Evidence checked October 7, 2026.** Following the DevDay limited preview,
    OpenAI [announced public beta on October 6](https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877),
    available to all developers. The [Decisions guide](https://developers.openai.com/api/docs/guides/decisions)
@@ -42,17 +42,21 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
      Keep SDK types out of Mellea contracts, retries explicitly disabled, and
      errors safe. Verify SDK-version compatibility, request mapping, refusal,
      and malformed or missing answers with mocks; add an opt-in live smoke test.
-   - **Implemented in the OpenAI stack — Choice.** Adapt configured labels and criteria to fixed choices and
+   - **In review ([PR #36](https://github.com/SoundBlaster/Jev4Mellea/pull/36)) — Choice.** Adapt configured labels and criteria to fixed choices and
      return `ChoiceResult`. Validate selected labels, distributions, and
      confidence semantics against the documented contract. Preserve existing
      Mellea classifier and requirement interfaces through the Choice protocol.
-   - **Implemented in the OpenAI stack — Score.** Adapt the configured scale and rubric to score levels and
+   - **In review ([PR #37](https://github.com/SoundBlaster/Jev4Mellea/pull/37)) — Score.** Adapt the configured scale and rubric to score levels and
      return `ScoreResult`. Establish how the vendor's score and confidence map
      to our scale; reject unsupported mappings explicitly.
-   - **Evaluation.** Compare OpenAI, TypeSafe, and Laya on the same versioned
-     labeled dataset for false-acceptance, false-rejection, uncertain rates,
-     latency, and cost. Keep live runs opt-in and establish calibration before
-     claiming comparable confidence or interchangeable thresholds.
+   - **In review ([PR #38](https://github.com/SoundBlaster/Jev4Mellea/pull/38)) — Noul evaluation runner.** Select OpenAI,
+     TypeSafe, or Laya for the same versioned labeled dataset. Save source labels,
+     returned models, and raw probabilities; report false-acceptance,
+     false-rejection, and uncertain rates for offline threshold sweeps.
+     Live runs remain opt-in, including explicit Proxy URL/key configuration.
+   - **Next — Live calibration and comparison.** Run OpenAI on representative
+     labeled data, record latency and cost separately, and establish calibration
+     before claiming comparable confidence or interchangeable thresholds.
 5. **Deferred.** Keep provider construction explicit. Revisit configuration or
    entry-point discovery if client projects need dynamic provider selection and
    there is clear ownership for maintaining the integration.

@@ -395,18 +395,20 @@ def _parser() -> argparse.ArgumentParser:
         "--predictions", type=Path, help="Score a saved prediction JSONL file offline"
     )
     mode.add_argument("--live", action="store_true", help="Explicitly run model inference")
-    parser.add_argument("--provider", choices=("typesafe", "laya"), default="typesafe")
+    parser.add_argument("--provider", choices=("typesafe", "openai", "laya"), default="typesafe")
     parser.add_argument("--model", help="Requested model/checkpoint (defaults depend on provider)")
     parser.add_argument(
-        "--base-url", type=_nonempty_argument, help="Explicit TypeSafe-compatible Proxy API root"
+        "--base-url", type=_nonempty_argument, help="Explicit TypeSafe or OpenAI Proxy API prefix"
     )
     parser.add_argument(
-        "--api-key-env", type=_nonempty_argument, help="Key environment variable for live TypeSafe"
+        "--api-key-env",
+        type=_nonempty_argument,
+        help="Key environment variable for live cloud inference",
     )
     parser.add_argument(
         "--provider-label",
         type=_nonempty_argument,
-        help="Source label saved in predictions and metrics (default: typesafe-proxy with --base-url)",
+        help="Source label saved in predictions and metrics (default: PROVIDER-proxy with --base-url)",
     )
     parser.add_argument(
         "--threshold",
@@ -429,20 +431,32 @@ def _run_live(
     api_key_env: str | None = None,
     provider_label: str | None = None,
 ) -> list[Prediction]:
-    label = provider_label or ("typesafe-proxy" if base_url is not None else provider_name)
+    label = provider_label or (f"{provider_name}-proxy" if base_url is not None else provider_name)
+    if base_url is not None and api_key_env is None:
+        raise ValueError("--base-url requires an explicit --api-key-env.")
+    key = None if api_key_env is None else os.environ.get(api_key_env, "")
+    if api_key_env is not None and not key:
+        raise ValueError("Set the API key environment variable selected by --api-key-env.")
     if provider_name == "typesafe":
         from mellea_jev import JevClient
         from mellea_jev.providers.typesafe import BASE_URL
 
-        key = None if api_key_env is None else os.environ.get(api_key_env, "")
-        if api_key_env is not None and not key:
-            raise ValueError("Set the API key environment variable selected by --api-key-env.")
         with JevClient(
             api_key=key,
             model=model or "jev-latest",
             base_url=BASE_URL if base_url is None else base_url,
         ) as provider:
             return collect_predictions(dataset, provider, provider_name=label)
+    if provider_name == "openai":
+        from mellea_jev import OpenAIProvider
+        from mellea_jev.providers.openai import BASE_URL as OPENAI_BASE_URL
+
+        with OpenAIProvider(
+            api_key=key,
+            model=model or "gpt-6-luna",
+            base_url=OPENAI_BASE_URL if base_url is None else base_url,
+        ) as openai_provider:
+            return collect_predictions(dataset, openai_provider, provider_name=label)
     try:
         import laya_mlx
     except ImportError as exc:
@@ -464,8 +478,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         value is not None for value in (args.base_url, args.api_key_env, args.provider_label)
     ):
         parser.error("Proxy connection options and --provider-label require --live.")
-    if args.provider != "typesafe" and (args.base_url is not None or args.api_key_env is not None):
-        parser.error("--base-url and --api-key-env require --provider typesafe.")
+    if args.provider not in ("typesafe", "openai") and (
+        args.base_url is not None or args.api_key_env is not None
+    ):
+        parser.error("--base-url and --api-key-env require --provider typesafe or openai.")
     if args.base_url is not None and args.api_key_env is None:
         parser.error("--base-url requires an explicit --api-key-env.")
     try:

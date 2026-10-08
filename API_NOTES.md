@@ -66,7 +66,7 @@ HTTP напрямую и не зависит от версии SDK.
 
 ## OpenAI Decisions API
 
-Дата сверки этого раздела: **2026-10-07**. Проверены
+Дата сверки этого раздела: **2026-10-08**. Проверены
 [Decisions guide](https://developers.openai.com/api/docs/guides/decisions) и
 официальный Python SDK **3.26.0**. Это проверка контракта и SDK на моках;
 успешного live-запроса от нашего аккаунта пока нет.
@@ -110,7 +110,12 @@ Score передаёт описания шкалы как упорядоченн
 распределению с допуском 0.02. Confidence передаётся отдельно, без калибровки
 относительно Jev. `JevScorer.as_requirement` применяет существующие границы и
 minimum confidence; SDK-типы не выходят в Mellea.
-Калибровка порогов относительно Jev остаётся задачей roadmap.
+Evaluation runner принимает `--live --provider openai` и считает Noul-метрики
+на том же versioned dataset. По умолчанию использует `OPENAI_API_KEY` и
+`gpt-6-luna`; явный Proxy URL требует `--api-key-env`, default source label —
+`openai-proxy`. Снимок сохраняет модель из ответа и выбранный source label,
+без ключей и URL. Повторный подсчёт порогов работает offline без SDK-вызовов.
+Калибровка порогов относительно Jev и live-бенчмарк OpenAI остаются задачами roadmap.
 
 ## Mellea
 

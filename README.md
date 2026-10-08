@@ -91,7 +91,7 @@ Replace the example URL with your Proxy's API root. From a checkout,
 
 From a checkout, install the optional official SDK with
 `pip install -e '.[openai]'` and set `OPENAI_API_KEY`.
-The Decisions API is in public beta. This provider supports Noul verification
+The Decisions API is in public beta. This provider supports Noul verification,
 Choice classification, and Score rubrics, with one question per request.
 
 ```python
@@ -426,6 +426,23 @@ python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
   --threshold 0.10,0.90 --save-predictions /tmp/museum-predictions.jsonl
 ```
 
+OpenAI uses the same Noul dataset and metric definitions. Install the optional
+`openai` extra and set `OPENAI_API_KEY` before this opt-in, potentially billable run:
+
+```bash
+python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
+  --live --provider openai --model gpt-6-luna \
+  --threshold 0.10,0.90 --save-predictions /tmp/openai-predictions.jsonl
+```
+
+For an OpenAI-compatible Proxy, pass its API prefix; the SDK appends `/decisions`:
+
+```bash
+make live-evaluate EVAL_PROVIDER=openai EVAL_MODEL=gpt-6-luna \
+  EVAL_BASE_URL=https://proxy.example/openai/v1 EVAL_API_KEY_ENV=PROXY_API_KEY \
+  EVAL_PROVIDER_LABEL=openai-proxy-a EVAL_PREDICTIONS=/tmp/openai-proxy-predictions.jsonl
+```
+
 For a TypeSafe-compatible Proxy, explicitly select its API root and the
 environment variable containing its key. The SDK adds `/v1/systemone` to the
 root. This example sends the dataset to your configured Proxy:
@@ -449,13 +466,15 @@ make live-evaluate EVAL_PROVIDER=typesafe \
 
 `--provider` selects the implementation; `--provider-label` sets the `provider`
 field in saved predictions and metric groups. With an explicit `--base-url`,
-the default label is `typesafe-proxy`; otherwise it is the implementation name.
+the default label is `typesafe-proxy` or `openai-proxy`; otherwise it is the implementation name.
 Use distinct labels for distinct Proxy sources, even if they return the same
 model name. An explicit `--base-url` requires `--api-key-env`. Connection flags
-require live TypeSafe mode; labels require live
+require live TypeSafe or OpenAI mode; labels require live
 mode and can also distinguish Laya checkpoints. URLs and keys are not saved in
 prediction snapshots. Without connection flags, TypeSafe still uses its
-official endpoint and `TYPESAFE_API_KEY`; offline scoring remains unchanged.
+official endpoint and `TYPESAFE_API_KEY`; OpenAI uses its official endpoint and
+`OPENAI_API_KEY`. Offline scoring remains unchanged. Thresholds need calibration
+for each provider and task; identical numeric thresholds do not establish comparable quality.
 
 To compare multiple threshold pairs or reproduce a report, load the saved
 predictions offline. No provider is constructed and no request is sent:

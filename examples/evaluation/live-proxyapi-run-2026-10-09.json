@@ -1,0 +1,56 @@
+{
+  "provider": "proxyapi-luna",
+  "endpoint": "https://api.proxyapi.ru/v1/decisions",
+  "requested_model": "openai/gpt-6-luna-decisions",
+  "dataset_sha256": "a7d79ab5facd2648460c48b52f900b2ca8f5ebaf56e196107e357f4d2492ca3f",
+  "request_count": 4,
+  "elapsed_seconds": 1.390845,
+  "total_input_tokens": 879,
+  "total_output_tokens": 0,
+  "requests": [
+    {
+      "example_id": "correct-time",
+      "model": "openai/gpt-6-luna-decisions-20261006",
+      "request_id": "gen-dec-1791499115-NXO8EXm9S1Jg9JPfJfci",
+      "p_yes": 1.0,
+      "usage": {
+        "input_tokens": 220,
+        "output_tokens": 0
+      },
+      "elapsed_seconds": 0.535229
+    },
+    {
+      "example_id": "wrong-time",
+      "model": "openai/gpt-6-luna-decisions-20261006",
+      "request_id": "gen-dec-1791499115-nXL0Nn5E9a8wkuRW49vK",
+      "p_yes": 0.0,
+      "usage": {
+        "input_tokens": 220,
+        "output_tokens": 0
+      },
+      "elapsed_seconds": 0.313306
+    },
+    {
+      "example_id": "correct-with-context",
+      "model": "openai/gpt-6-luna-decisions-20261006",
+      "request_id": "gen-dec-1791499116-P7d7p3ZIIQl0P9P0cmTg",
+      "p_yes": 1.0,
+      "usage": {
+        "input_tokens": 219,
+        "output_tokens": 0
+      },
+      "elapsed_seconds": 0.294951
+    },
+    {
+      "example_id": "closing-time-confusion",
+      "model": "openai/gpt-6-luna-decisions-20261006",
+      "request_id": "gen-dec-1791499116-Tcy2OuC17ZF6B4tQUD5P",
+      "p_yes": 0.0,
+      "usage": {
+        "input_tokens": 220,
+        "output_tokens": 0
+      },
+      "elapsed_seconds": 0.20661
+    }
+  ]
+}

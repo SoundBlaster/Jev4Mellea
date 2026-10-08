@@ -1,5 +1,29 @@
 # Temporary ProxyAPI Decisions adapter
 
+This adapter is parked on the `proxyapi-adapter` branch. It is not merged into
+`main` or published to PyPI. The branch identifies itself as
+`0.2.2.dev0+proxyapi`; the official release remains separate.
+
+## Use in another project
+
+Install the package from the branch (the `mellea` extra enables Requirement hooks):
+
+```bash
+python -m pip install 'mellea-jev-adapter[mellea] @ git+https://github.com/SoundBlaster/Jev4Mellea.git@proxyapi-adapter'
+```
+
+For reproducible deployments, replace `proxyapi-adapter` in that URL with the
+full commit SHA you have reviewed. The distribution name is the same as the
+regular adapter: this installation replaces that distribution, so use a project
+virtual environment. No repository checkout or editable installation is needed.
+Without Mellea hooks, omit `[mellea]` and use the provider directly.
+
+Set `PROXYAPI_API_KEY` in your application's environment and use the explicit
+module import in the example below. Supply the key to the provider; it does not
+read it implicitly or make requests at import time.
+
+## Contract and composition
+
 ProxyAPI's [Decisions API](https://proxyapi.ru/docs/decisions) uses `state`, a
 mapping of named `questions`, and the `noul` / `choice` / `score` primitives.
 The native OpenAI SDK uses a different wire contract (`input`, question arrays,
@@ -55,6 +79,28 @@ mock transport and makes no live calls.
 
 The [recorded live smoke check](examples/evaluation/live-proxyapi-smoke-2026-10-09.md)
 passed all three primitives through this adapter with model, request ID, and usage.
+
+## Evaluate labeled examples
+
+From a branch checkout, the evaluation runner supports ProxyAPI:
+
+```bash
+.venv/bin/python examples/evaluate.py examples/evaluation/museum_opening.jsonl \
+  --live --provider proxyapi --provider-label proxyapi-luna \
+  --save-predictions /tmp/proxyapi-predictions.jsonl \
+  --threshold 0.10,0.90 --threshold 0.20,0.80
+```
+
+It reads `PROXYAPI_API_KEY` by default; use `--api-key-env YOUR_KEY_ENV` to select
+another variable explicitly. Its destination is fixed, so omit `--base-url`.
+Each example produces one request. Threshold sweeps reuse the saved raw probabilities.
+Any API failure stops collection; there are no retries.
+
+To reproduce metrics without inference, replace `--live` and connection options
+with `--predictions /tmp/proxyapi-predictions.jsonl`. See the
+[measured four-example comparison](examples/evaluation/live-proxyapi-benchmark-2026-10-09.md)
+for recorded outputs and limitations. The runner and datasets are repository
+tools, not wheel-installed CLI commands; the provider itself is packaged.
 
 ## Experimental limits
 

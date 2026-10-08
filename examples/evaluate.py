@@ -395,7 +395,9 @@ def _parser() -> argparse.ArgumentParser:
         "--predictions", type=Path, help="Score a saved prediction JSONL file offline"
     )
     mode.add_argument("--live", action="store_true", help="Explicitly run model inference")
-    parser.add_argument("--provider", choices=("typesafe", "openai", "laya"), default="typesafe")
+    parser.add_argument(
+        "--provider", choices=("typesafe", "openai", "proxyapi", "laya"), default="typesafe"
+    )
     parser.add_argument("--model", help="Requested model/checkpoint (defaults depend on provider)")
     parser.add_argument(
         "--base-url", type=_nonempty_argument, help="Explicit TypeSafe or OpenAI Proxy API prefix"
@@ -432,6 +434,18 @@ def _run_live(
     provider_label: str | None = None,
 ) -> list[Prediction]:
     label = provider_label or (f"{provider_name}-proxy" if base_url is not None else provider_name)
+    if provider_name == "proxyapi":
+        if base_url is not None:
+            raise ValueError(
+                "The temporary ProxyAPI provider uses a fixed endpoint; omit --base-url."
+            )
+        from mellea_jev.providers.proxyapi import DEFAULT_MODEL, ProxyAPIProvider
+
+        proxyapi_key = os.environ.get(api_key_env or "PROXYAPI_API_KEY", "")
+        if not proxyapi_key:
+            raise ValueError("Set the selected ProxyAPI key environment variable first.")
+        with ProxyAPIProvider(api_key=proxyapi_key, model=model or DEFAULT_MODEL) as provider:
+            return collect_predictions(dataset, provider, provider_name=label)
     if base_url is not None and api_key_env is None:
         raise ValueError("--base-url requires an explicit --api-key-env.")
     key = None if api_key_env is None else os.environ.get(api_key_env, "")
@@ -478,10 +492,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         value is not None for value in (args.base_url, args.api_key_env, args.provider_label)
     ):
         parser.error("Proxy connection options and --provider-label require --live.")
-    if args.provider not in ("typesafe", "openai") and (
-        args.base_url is not None or args.api_key_env is not None
-    ):
-        parser.error("--base-url and --api-key-env require --provider typesafe or openai.")
+    if args.base_url is not None and args.provider not in ("typesafe", "openai"):
+        parser.error("--base-url requires --provider typesafe or openai.")
+    if args.api_key_env is not None and args.provider not in ("typesafe", "openai", "proxyapi"):
+        parser.error("--api-key-env requires a cloud provider: typesafe, openai, or proxyapi.")
     if args.base_url is not None and args.api_key_env is None:
         parser.error("--base-url requires an explicit --api-key-env.")
     try:

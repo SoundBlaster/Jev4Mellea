@@ -1,0 +1,17 @@
+{"dataset": "museum-opening-time", "dataset_sha256": "a7d79ab5facd2648460c48b52f900b2ca8f5ebaf56e196107e357f4d2492ca3f", "dataset_version": "1.0.0", "format_version": 1, "type": "prediction_set"}
+{"id": "correct-time", "model": "jev-1.13.0", "p_yes": 0.98, "provider": "typesafe", "type": "prediction"}
+{"id": "wrong-time", "model": "jev-1.13.0", "p_yes": 0.01, "provider": "typesafe", "type": "prediction"}
+{"id": "correct-with-context", "model": "jev-1.13.0", "p_yes": 0.97, "provider": "typesafe", "type": "prediction"}
+{"id": "closing-time-confusion", "model": "jev-1.13.0", "p_yes": 0.02, "provider": "typesafe", "type": "prediction"}
+{"id": "correct-time", "model": "laya-rl-agent", "p_yes": 0.4031, "provider": "laya", "type": "prediction"}
+{"id": "wrong-time", "model": "laya-rl-agent", "p_yes": 0.0408, "provider": "laya", "type": "prediction"}
+{"id": "correct-with-context", "model": "laya-rl-agent", "p_yes": 0.6954, "provider": "laya", "type": "prediction"}
+{"id": "closing-time-confusion", "model": "laya-rl-agent", "p_yes": 0.079, "provider": "laya", "type": "prediction"}
+{"id": "correct-time", "model": "jev-1.13.0", "p_yes": 0.98, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "wrong-time", "model": "jev-1.13.0", "p_yes": 0.01, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "correct-with-context", "model": "jev-1.13.0", "p_yes": 0.97, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "closing-time-confusion", "model": "jev-1.13.0", "p_yes": 0.02, "provider": "typesafe-proxy", "type": "prediction"}
+{"id": "correct-time", "model": "openai/gpt-6-luna-decisions-20261006", "p_yes": 1.0, "provider": "proxyapi-luna", "type": "prediction"}
+{"id": "wrong-time", "model": "openai/gpt-6-luna-decisions-20261006", "p_yes": 0.0, "provider": "proxyapi-luna", "type": "prediction"}
+{"id": "correct-with-context", "model": "openai/gpt-6-luna-decisions-20261006", "p_yes": 1.0, "provider": "proxyapi-luna", "type": "prediction"}
+{"id": "closing-time-confusion", "model": "openai/gpt-6-luna-decisions-20261006", "p_yes": 0.0, "provider": "proxyapi-luna", "type": "prediction"}

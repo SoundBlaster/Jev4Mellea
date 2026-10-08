@@ -7,6 +7,10 @@
 ![TypeSafe SDK 0.7.x](https://img.shields.io/badge/TypeSafe%20SDK-0.7.x-6f42c1)
 [![Coverage gate: 80%](https://img.shields.io/badge/coverage%20gate-%E2%89%A580%25-success)](https://github.com/SoundBlaster/Jev4Mellea/blob/main/pyproject.toml#L68-L70)
 
+> This `proxyapi-adapter` branch includes an experimental ProxyAPI provider,
+> outside `main` and the published releases. For Git installation in another
+> project and evaluation instructions, see [EXPERIMENTAL_PROXYAPI.md](EXPERIMENTAL_PROXYAPI.md).
+
 A small Python adapter that brings TypeSafe Jev's semantic checks into
 [Mellea](https://github.com/generative-computing/mellea). Use Jev to verify
 generated text, classify it into your labels, or rate it on a scale. Mellea

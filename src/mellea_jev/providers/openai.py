@@ -153,6 +153,8 @@ class OpenAIProvider:
     ) -> ChoiceResult:
         """Classify into the caller's string labels; reject incomplete distributions."""
         normalized = normalize_choice_criteria(criteria)
+        if not 2 <= len(normalized) <= 255:
+            raise ValueError("OpenAI Choice requires between 2 and 255 labels.")
         choices: list[QuestionQuestionParamChoiceChoice] = []
         for label, description in normalized.items():
             option: QuestionQuestionParamChoiceChoice = {"value": label}

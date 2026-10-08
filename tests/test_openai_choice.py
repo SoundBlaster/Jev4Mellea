@@ -164,7 +164,9 @@ def test_choice_refusal_does_not_become_classification():
         "test", transport=httpx2.MockTransport(lambda _: httpx2.Response(200, json=body))
     ) as client:
         with pytest.raises(OpenAIRefusalError):
-            client.choice(state={}, question="Which team?", criteria={"billing": None})
+            client.choice(
+                state={}, question="Which team?", criteria={"billing": None, "technical": None}
+            )
 
 
 @pytest.mark.parametrize("status", [302, 401, 429, 500])
@@ -179,7 +181,9 @@ def test_choice_http_errors_no_retries_or_redirects(status):
 
     with OpenAIProvider("secret-key", transport=httpx2.MockTransport(handler)) as client:
         with pytest.raises(OpenAIHTTPError) as captured:
-            client.choice(state={}, question="Which team?", criteria={"billing": None})
+            client.choice(
+                state={}, question="Which team?", criteria={"billing": None, "technical": None}
+            )
     assert len(calls) == 1
     assert "secret" not in "".join(traceback.format_exception(captured.value))
 
@@ -193,3 +197,37 @@ def test_invalid_criteria_fail_before_http(criteria, error):
     ) as client:
         with pytest.raises(error):
             client.choice(state={}, question="Which team?", criteria=criteria)
+
+
+@pytest.mark.parametrize("count", [1, 256])
+def test_choice_count_limits_fail_before_http(count):
+    with OpenAIProvider(
+        "test", transport=httpx2.MockTransport(lambda _: pytest.fail("No request expected"))
+    ) as client:
+        with pytest.raises(ValueError, match="between 2 and 255"):
+            client.choice(
+                state={}, question="Which label?", criteria={str(i): None for i in range(count)}
+            )
+
+
+@pytest.mark.parametrize("count", [2, 255])
+def test_choice_count_boundaries_are_accepted(count):
+    criteria = {str(i): None for i in range(count)}
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        assert len(json.loads(request.content)["questions"][0]["choices"]) == count
+        return httpx2.Response(
+            200,
+            json=choice_wire(
+                choice="0",
+                probabilities=[{"value": label, "probability": 1 / count} for label in criteria],
+            ),
+        )
+
+    with OpenAIProvider("test", transport=httpx2.MockTransport(handler)) as client:
+        result = client.choice(state={}, question="Which label?", criteria=criteria)
+    assert result.choice == "0"
+    assert set(result.probabilities) == set(criteria)
+    assert len(calls) == 1

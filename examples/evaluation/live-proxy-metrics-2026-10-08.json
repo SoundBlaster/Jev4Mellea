@@ -1,0 +1,49 @@
+{
+  "dataset": {
+    "name": "museum-opening-time",
+    "version": "1.0.0",
+    "sha256": "a7d79ab5facd2648460c48b52f900b2ca8f5ebaf56e196107e357f4d2492ca3f"
+  },
+  "sample_count": 4,
+  "rates": {
+    "false_acceptance": "false accepts / expected rejects",
+    "false_rejection": "false rejects / expected accepts",
+    "uncertain": "uncertain predictions / all examples"
+  },
+  "results": [
+    {
+      "provider": "typesafe-proxy",
+      "model": "jev-1.13.0",
+      "threshold": {
+        "reject_at": 0.1,
+        "accept_at": 0.9
+      },
+      "sample_count": 4,
+      "positive_count": 2,
+      "negative_count": 2,
+      "false_acceptance_count": 0,
+      "false_acceptance_rate": 0.0,
+      "false_rejection_count": 0,
+      "false_rejection_rate": 0.0,
+      "uncertain_count": 0,
+      "uncertain_rate": 0.0
+    },
+    {
+      "provider": "typesafe-proxy",
+      "model": "jev-1.13.0",
+      "threshold": {
+        "reject_at": 0.2,
+        "accept_at": 0.8
+      },
+      "sample_count": 4,
+      "positive_count": 2,
+      "negative_count": 2,
+      "false_acceptance_count": 0,
+      "false_acceptance_rate": 0.0,
+      "false_rejection_count": 0,
+      "false_rejection_rate": 0.0,
+      "uncertain_count": 0,
+      "uncertain_rate": 0.0
+    }
+  ]
+}

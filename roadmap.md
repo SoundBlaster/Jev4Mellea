@@ -54,7 +54,7 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
      returned models, and raw probabilities; report false-acceptance,
      false-rejection, and uncertain rates for offline threshold sweeps.
      Live runs remain opt-in, including explicit Proxy URL/key configuration.
-   - **Implemented — Opt-in primitive smoke tests.** Exercise Noul, Choice, and
+   - **Completed ([PR #40](https://github.com/SoundBlaster/Jev4Mellea/pull/40)) — Opt-in primitive smoke tests.** Exercise Noul, Choice, and
      Score through the existing adapters, one request per primitive; stop on the
      first failure with `make openai-live-test`. Ordinary CI remains offline.
      A live pass requires an available key and is separate from adding the tests.

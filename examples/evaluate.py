@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from collections import defaultdict
 from collections.abc import Sequence
@@ -380,6 +381,12 @@ def _threshold(value: str) -> ThresholdPair:
         raise argparse.ArgumentTypeError("use REJECT_AT,ACCEPT_AT, for example 0.10,0.90") from exc
 
 
+def _nonempty_argument(value: str) -> str:
+    if not value.strip():
+        raise argparse.ArgumentTypeError("must be nonempty text")
+    return value
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("dataset", type=Path, help="Versioned labeled-example JSONL file")
@@ -390,6 +397,17 @@ def _parser() -> argparse.ArgumentParser:
     mode.add_argument("--live", action="store_true", help="Explicitly run model inference")
     parser.add_argument("--provider", choices=("typesafe", "laya"), default="typesafe")
     parser.add_argument("--model", help="Requested model/checkpoint (defaults depend on provider)")
+    parser.add_argument(
+        "--base-url", type=_nonempty_argument, help="Explicit TypeSafe-compatible Proxy API root"
+    )
+    parser.add_argument(
+        "--api-key-env", type=_nonempty_argument, help="Key environment variable for live TypeSafe"
+    )
+    parser.add_argument(
+        "--provider-label",
+        type=_nonempty_argument,
+        help="Source label saved in predictions and metrics (default: typesafe-proxy with --base-url)",
+    )
     parser.add_argument(
         "--threshold",
         action="append",
@@ -402,12 +420,29 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _run_live(provider_name: str, model: str | None, dataset: LabeledDataset) -> list[Prediction]:
+def _run_live(
+    provider_name: str,
+    model: str | None,
+    dataset: LabeledDataset,
+    *,
+    base_url: str | None = None,
+    api_key_env: str | None = None,
+    provider_label: str | None = None,
+) -> list[Prediction]:
+    label = provider_label or ("typesafe-proxy" if base_url is not None else provider_name)
     if provider_name == "typesafe":
         from mellea_jev import JevClient
+        from mellea_jev.providers.typesafe import BASE_URL
 
-        with JevClient(model=model or "jev-latest") as provider:
-            return collect_predictions(dataset, provider, provider_name=provider_name)
+        key = None if api_key_env is None else os.environ.get(api_key_env, "")
+        if api_key_env is not None and not key:
+            raise ValueError("Set the API key environment variable selected by --api-key-env.")
+        with JevClient(
+            api_key=key,
+            model=model or "jev-latest",
+            base_url=BASE_URL if base_url is None else base_url,
+        ) as provider:
+            return collect_predictions(dataset, provider, provider_name=label)
     try:
         import laya_mlx
     except ImportError as exc:
@@ -416,7 +451,7 @@ def _run_live(provider_name: str, model: str | None, dataset: LabeledDataset) ->
 
     checkpoint = model or "aac6fef/laya-mlx"
     return collect_predictions(
-        dataset, LayaProvider(laya_mlx.load(checkpoint)), provider_name=provider_name
+        dataset, LayaProvider(laya_mlx.load(checkpoint)), provider_name=label
     )
 
 
@@ -425,10 +460,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.save_predictions and not args.live:
         parser.error("--save-predictions can only be used with --live.")
+    if not args.live and any(
+        value is not None for value in (args.base_url, args.api_key_env, args.provider_label)
+    ):
+        parser.error("Proxy connection options and --provider-label require --live.")
+    if args.provider != "typesafe" and (args.base_url is not None or args.api_key_env is not None):
+        parser.error("--base-url and --api-key-env require --provider typesafe.")
+    if args.base_url is not None and args.api_key_env is None:
+        parser.error("--base-url requires an explicit --api-key-env.")
     try:
         dataset = load_dataset(args.dataset)
         if args.live:
-            predictions = _run_live(args.provider, args.model, dataset)
+            predictions = _run_live(
+                args.provider,
+                args.model,
+                dataset,
+                base_url=args.base_url,
+                api_key_env=args.api_key_env,
+                provider_label=args.provider_label,
+            )
             if args.save_predictions:
                 save_predictions(args.save_predictions, dataset, predictions)
         else:

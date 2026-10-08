@@ -128,6 +128,30 @@ def test_real_choice_requirement_validate_hook(choice, expected):
 
 
 @pytest.mark.parametrize("score,expected", [(0.7, True), (1.5, False)])
+def test_openai_score_real_requirement_validate_hook(score, expected):
+    from test_openai_score import RUBRIC, score_wire
+
+    entries = score_wire()["answers"][0]["probabilities"]
+    if score == 1.5:
+        for entry, p in zip(entries, [0.0, 0.5, 0.5], strict=True):
+            entry["probability"] = p
+    transport = httpx2.MockTransport(
+        lambda _: httpx2.Response(200, json=score_wire(score=score, probabilities=entries))
+    )
+    ctx = Mock(spec=Context)
+    ctx.last_output.return_value = SimpleNamespace(value="A minor issue")
+    with OpenAIProvider("test", transport=transport) as provider:
+        req = JevScorer(provider, "Rate severity.", criteria=RUBRIC).as_requirement(
+            maximum_score=1.0, minimum_confidence=0.7
+        )
+        result = asyncio.run(req.validate(backend=None, ctx=ctx))
+    assert isinstance(req, Requirement)
+    assert isinstance(result, ValidationResult)
+    assert bool(result) is expected
+    assert result.score == score
+
+
+@pytest.mark.parametrize("score,expected", [(0.7, True), (1.5, False)])
 def test_real_score_requirement_validate_hook(score, expected):
     transport = httpx2.MockTransport(
         lambda _: httpx2.Response(

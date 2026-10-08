@@ -11,7 +11,7 @@ EVAL_MODEL ?=
 EVAL_THRESHOLD ?= 0.10,0.90
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check coreinfra-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -27,6 +27,7 @@ help: ## Show the available development commands
 	  'ollama-test      Run the local Ollama repair test; Jev HTTP is mocked' \
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
+	  'coreinfra-live-check Run one potentially billable Jev check through CoreInfra' \
 	  'openai-live-test Run one explicitly enabled, potentially billable Decisions smoke test' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
@@ -72,6 +73,10 @@ ollama-test: $(INSTALL_STAMP) ## Exercise real local generation; Jev HTTP is moc
 live-test: $(INSTALL_STAMP) ## Send explicitly enabled requests to TypeSafe; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	RUN_LIVE_JEV=1 $(PY) -m pytest -q tests/test_live_jev.py
+
+coreinfra-live-check: $(INSTALL_STAMP) ## Run one potentially billable Jev check through CoreInfra
+	@test -n "$${COREINFRA_API_KEY:-}" || { echo 'Set COREINFRA_API_KEY first.' >&2; exit 2; }
+	$(PY) examples/live_check.py --base-url https://hub.coreinfra.ai/typesafe/api --api-key-env COREINFRA_API_KEY --candidate 'CoreInfra provides Jev through its Hub API.' --requirement 'The candidate states that CoreInfra supports Jev.'
 
 live-check: $(INSTALL_STAMP) ## Run one live Jev check using the sample input; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }

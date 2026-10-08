@@ -187,7 +187,10 @@ def test_invalid_json_and_non_finite_response(content):
 
 
 @pytest.mark.parametrize("status", [301, 302, 307, 401, 403, 422, 429, 500, 529])
-def test_http_failures_are_not_semantic_failures_or_retried(status):
+@pytest.mark.parametrize(
+    "base_url", ["https://api.typesafe.ai", "https://hub.coreinfra.ai/typesafe/api"]
+)
+def test_http_failures_are_not_semantic_failures_or_retried(status, base_url):
     calls = []
 
     def handler(request):
@@ -198,7 +201,7 @@ def test_http_failures_are_not_semantic_failures_or_retried(status):
             headers={"location": "https://different-host.invalid"},
         )
 
-    with JevClient("test", transport=httpx2.MockTransport(handler)) as client:
+    with JevClient("test", base_url=base_url, transport=httpx2.MockTransport(handler)) as client:
         with pytest.raises(JevHTTPError) as exc:
             client.noul(state={}, question="Valid?")
     assert exc.value.status_code == status
@@ -274,6 +277,58 @@ def test_base_url_environment_cannot_override_official_endpoint(monkeypatch):
 
     assert len(requests) == 1
     assert str(requests[0].url) == ENDPOINT
+
+
+@pytest.mark.parametrize("suffix", ["", "/"])
+def test_explicit_coreinfra_endpoint(suffix, monkeypatch):
+    monkeypatch.setenv("TYPESAFE_BASE_URL", "https://untrusted.example")
+
+    def handler(request):
+        assert str(request.url) == "https://hub.coreinfra.ai/typesafe/api/v1/systemone"
+        assert request.headers["authorization"] == "Bearer coreinfra-test-key"
+        assert json.loads(request.content) == {
+            "model": "jev-latest",
+            "state": {"text": "CoreInfra provides Jev through its Hub API."},
+            "questions": {
+                "supported": {"type": "noul", "instructions": "Does CoreInfra support Jev?"}
+            },
+        }
+        body = wire()
+        body["answers"] = {"supported": {"type": "noul", "noul": 0.98}}
+        return httpx2.Response(200, json=body, headers={"x-typesafe-request-id": "gateway-42"})
+
+    with JevClient(
+        "coreinfra-test-key",
+        base_url="https://hub.coreinfra.ai/typesafe/api" + suffix,
+        transport=httpx2.MockTransport(handler),
+    ) as client:
+        result = client.system_one(
+            state={"text": "CoreInfra provides Jev through its Hub API."},
+            questions={"supported": NoulQuestion("Does CoreInfra support Jev?")},
+        )
+    assert result.answers["supported"] == NoulResult(
+        0.98, "jev-test-fixture", "gateway-42", TypeSafeUsage(50, 2)
+    )
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        None,
+        "",
+        "relative/path",
+        "ftp://host",
+        "https://user:SECRET@host",
+        "https://host?secret=SECRET",
+        "https://host#fragment",
+        "https://host/ with-space",
+        "https://host:invalid-port",
+    ],
+)
+def test_invalid_base_url_is_rejected_without_exposing_url(base_url):
+    with pytest.raises(ValueError) as exc:
+        JevClient("test", base_url=base_url)
+    assert "SECRET" not in str(exc.value)
 
 
 def test_client_closes_transport():

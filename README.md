@@ -87,12 +87,12 @@ Replace the example URL with your Proxy's API root. From a checkout,
 `make proxy-live-check` runs one potentially billable verification with
 `PROXY_API_KEY` and `PROXY_BASE_URL` set in the environment; CI uses mocks.
 
-### Verify with OpenAI Decisions API
+### Use OpenAI Decisions API
 
 From a checkout, install the optional official SDK with
 `pip install -e '.[openai]'` and set `OPENAI_API_KEY`.
 The Decisions API is in public beta. This provider supports Noul verification
-and Choice classification, with one question per request.
+Choice classification, and Score rubrics, with one question per request.
 
 ```python
 from mellea_jev import JevVerifier, OpenAIProvider
@@ -128,6 +128,23 @@ with OpenAIProvider() as provider:
 
 Choice preserves the SDK's confidence separately from the label probabilities.
 Labels must be strings and the response must contain the complete configured distribution.
+
+Score uses the same ordered rubric and inclusive bounds as other providers:
+
+```python
+from mellea_jev import JevScorer, OpenAIProvider
+
+with OpenAIProvider() as provider:
+    scorer = JevScorer(
+        provider, "Rate the severity of the issue.", criteria=["Low", "Medium", "High"]
+    )
+    result = scorer.evaluate("The button is slightly misaligned.")
+    print(result.score, result.confidence, result.legend)
+    requirement = scorer.as_requirement(maximum_score=1.0, minimum_confidence=0.80)
+```
+
+The score is a fractional position from zero to `len(criteria) - 1`, checked
+against the probability-weighted level average. Confidence remains a separate value.
 
 The provider sends the state dictionary as JSON text in `input`. Optional Noul
 `criteria` descriptions are appended as JSON to the predicate instructions;
@@ -478,7 +495,8 @@ private or sensitive examples or prediction snapshots.
 - The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 - OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
-  and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul and Choice; `gpt-6-luna` is its default model.
+  and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul, Choice, and Score;
+  `gpt-6-luna` is its default model.
 
 The CI compatibility matrix runs the package checks with these combinations:
 

@@ -46,7 +46,7 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
      return `ChoiceResult`. Validate selected labels, distributions, and
      confidence semantics against the documented contract. Preserve existing
      Mellea classifier and requirement interfaces through the Choice protocol.
-   - **Score.** Adapt the configured scale and rubric to score levels and
+   - **Implemented in the OpenAI stack — Score.** Adapt the configured scale and rubric to score levels and
      return `ScoreResult`. Establish how the vendor's score and confidence map
      to our scale; reject unsupported mappings explicitly.
    - **Evaluation.** Compare OpenAI, TypeSafe, and Laya on the same versioned

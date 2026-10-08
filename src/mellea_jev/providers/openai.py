@@ -1,17 +1,24 @@
-"""Optional synchronous Decisions API provider for Noul and Choice."""
+"""Optional synchronous Decisions API provider for Noul, Choice, and Score."""
 
 from __future__ import annotations
 
 import json
 import math
 import os
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 import httpx2
 
 from ..contracts import ChoiceCriteria, NoulCriteria
-from ..criteria import _json_value, normalize_choice_criteria, normalize_noul_criteria, probability
-from ..results import ChoiceResult, NoulResult, UsageMetadata
+from ..criteria import (
+    _json_value,
+    normalize_choice_criteria,
+    normalize_noul_criteria,
+    normalize_score_criteria,
+    probability,
+)
+from ..results import ChoiceResult, NoulResult, ScoreResult, UsageMetadata
 
 if TYPE_CHECKING:
     from openai.types.decision import Answer
@@ -20,6 +27,7 @@ if TYPE_CHECKING:
 BASE_URL = "https://api.openai.com/v1"
 QUESTION_NAME = "requirement"
 CHOICE_QUESTION_NAME = "classification"
+SCORE_QUESTION_NAME = "rating"
 
 
 class OpenAIProviderError(RuntimeError):
@@ -47,7 +55,8 @@ class OpenAIProvider:
     SDK or send requests. State is serialized as JSON text, and optional outcome
     criteria are appended to the predicate instructions as JSON. Choice labels
     remain strings; structured descriptions are serialized as JSON text.
-    Image input, batching, and Score are outside the current interface.
+    Score descriptions become ordered level labels with zero-based indices.
+    Image input and batching are outside the current interface.
 
     The official endpoint is the default. ``base_url`` explicitly selects a
     compatible gateway; OPENAI_BASE_URL is not read. Environment proxies and
@@ -190,6 +199,51 @@ class OpenAIProvider:
         except (ValueError, TypeError, AttributeError, OverflowError):
             raise OpenAIProtocolError(
                 "Malformed OpenAI choice response; refusing to accept."
+            ) from None
+
+    def score(
+        self,
+        *,
+        state: dict[str, Any],
+        question: str,
+        criteria: Sequence[str],
+    ) -> ScoreResult:
+        """Return a probability-weighted position on the caller's ordered rubric."""
+        normalized = normalize_score_criteria(criteria)
+        answer, model, request_id, usage = self._request(
+            state=state,
+            question={
+                "type": "score",
+                "name": SCORE_QUESTION_NAME,
+                "instructions": question,
+                "levels": [{"label": description} for description in normalized],
+            },
+        )
+        if answer.type != "score":
+            raise OpenAIProtocolError("Expected a score answer.")
+        try:
+            probabilities: dict[int, float] = {}
+            legend: dict[int, str] = {}
+            for entry in answer.probabilities:
+                level = entry.value
+                if (
+                    type(level) is not int
+                    or level in probabilities
+                    or not 0 <= level < len(normalized)
+                ):
+                    raise ValueError("Expected unique configured score indices.")
+                if entry.label != normalized[level]:
+                    raise ValueError("Score label does not match the requested rubric.")
+                probabilities[level] = probability(entry.probability)
+                legend[level] = entry.label
+            if set(probabilities) != set(range(len(normalized))):
+                raise ValueError("Score levels do not match the request.")
+            return ScoreResult(
+                answer.score, answer.confidence, probabilities, legend, model, request_id, usage
+            )
+        except (ValueError, TypeError, AttributeError, OverflowError):
+            raise OpenAIProtocolError(
+                "Malformed OpenAI score response; refusing to accept."
             ) from None
 
     def _request(

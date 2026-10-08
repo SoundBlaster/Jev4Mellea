@@ -33,8 +33,8 @@ and [Publishing with a Trusted Publisher](https://docs.pypi.org/trusted-publishe
 2. Create and push the matching version tag from the merged commit, for example:
 
    ```bash
-   git tag v0.2.0
-   git push origin v0.2.0
+   git tag v0.3.0
+   git push origin v0.3.0
    ```
 
 3. Follow the `Release package` workflow in GitHub Actions. A mismatch, a tag

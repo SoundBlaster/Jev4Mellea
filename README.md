@@ -59,9 +59,9 @@ Jev response.
 
 ## Examples
 
-### Jev through CoreInfra
+### Jev through a Proxy
 
-Use a CoreInfra key and explicitly select the TypeSafe API root. The SDK adds
+Use your Proxy's key and explicitly select its TypeSafe-compatible API root. The SDK adds
 `/v1/systemone`; do not include that suffix in `base_url`.
 
 ```python
@@ -69,22 +69,23 @@ import os
 from mellea_jev import JevClient, NoulQuestion
 
 with JevClient(
-    api_key=os.environ["COREINFRA_API_KEY"],
-    base_url="https://hub.coreinfra.ai/typesafe/api",
+    api_key=os.environ["PROXY_API_KEY"],
+    base_url="https://proxy.example/typesafe/api",
     model="jev-latest",
 ) as jev:
     result = jev.system_one(
-        state={"text": "CoreInfra provides Jev through its Hub API."},
-        questions={"supported": NoulQuestion("Does CoreInfra support Jev?")},
+        state={"text": "Hello! Thank you for your message."},
+        questions={"greeting": NoulQuestion("Does the text contain a polite greeting?")},
     )
-    print(result.answers["supported"])
+    print(result.answers["greeting"])
 ```
 
 The adapter retains its dictionary `state` contract. Without an explicit
 `base_url`, it uses the official TypeSafe endpoint and ignores
 `TYPESAFE_BASE_URL`. Requests never follow redirects or retry automatically.
-From a checkout, `make coreinfra-live-check` runs one potentially billable
-verification with `COREINFRA_API_KEY`; CI uses mocks.
+Replace the example URL with your Proxy's API root. From a checkout,
+`make proxy-live-check` runs one potentially billable verification with
+`PROXY_API_KEY` and `PROXY_BASE_URL` set in the environment; CI uses mocks.
 
 ### Verify with OpenAI Decisions API
 
@@ -115,15 +116,15 @@ Decisions predicates do not have a separate outcome-criteria field. Refusals
 raise `OpenAIRefusalError`; transport, HTTP, and invalid-response errors raise
 `OpenAIProviderError` subclasses. These errors never become accepted verdicts.
 Requests use the official endpoint by default, without automatic retries or redirects.
-For CoreInfra or another gateway, pass an explicit `base_url` (including the API
-prefix such as `/v1`) and the gateway's key:
+For a Proxy, pass an explicit `base_url` (including the API
+prefix such as `/v1`) and the Proxy's key:
 
 ```python
 import os
 
 with OpenAIProvider(
-    api_key=os.environ["COREINFRA_API_KEY"],
-    base_url="https://your-gateway.example/v1",
+    api_key=os.environ["PROXY_API_KEY"],
+    base_url="https://proxy.example/v1",
 ) as provider:
     result = provider.noul(state={"candidate": "Hello!"}, question="Is it a greeting?")
 ```

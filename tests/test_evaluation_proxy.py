@@ -141,15 +141,28 @@ def test_missing_selected_key_does_not_fall_back_to_official_key(monkeypatch):
 def test_sources_with_same_model_remain_separate():
     predictions = [
         Prediction(example.id, source, "same-model", 0.98 if example.expected == "accept" else 0.02)
-        for source in ("typesafe", "typesafe-proxy-a", "typesafe-proxy-b")
+        for source in (
+            "typesafe",
+            "typesafe-proxy-a",
+            "typesafe-proxy-b",
+            "openai",
+            "openai-proxy-a",
+        )
         for example in dataset().examples
     ]
     rows = score_predictions(dataset(), predictions, [ThresholdPair(0.10, 0.90)])
-    assert {row.provider for row in rows} == {"typesafe", "typesafe-proxy-a", "typesafe-proxy-b"}
+    assert {row.provider for row in rows} == {
+        "typesafe",
+        "typesafe-proxy-a",
+        "typesafe-proxy-b",
+        "openai",
+        "openai-proxy-a",
+    }
 
 
+@pytest.mark.parametrize("provider", ["typesafe", "openai"])
 def test_cli_forwards_proxy_options_and_offline_scoring_reuses_snapshot(
-    monkeypatch, tmp_path, capsys
+    monkeypatch, tmp_path, capsys, provider
 ):
     import examples.evaluate as runner
 
@@ -177,7 +190,7 @@ def test_cli_forwards_proxy_options_and_offline_scoring_reuses_snapshot(
                 source,
                 "--live",
                 "--provider",
-                "typesafe",
+                provider,
                 "--model",
                 "jev-requested",
                 "--base-url",
@@ -196,7 +209,7 @@ def test_cli_forwards_proxy_options_and_offline_scoring_reuses_snapshot(
     live_report = json.loads(capsys.readouterr().out)
     assert calls == [
         (
-            "typesafe",
+            provider,
             "jev-requested",
             {
                 "base_url": "https://proxy.example/typesafe/api",

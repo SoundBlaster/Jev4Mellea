@@ -8,9 +8,9 @@ previous job succeeds.
 
 ## One-time PyPI setup
 
-The project name `mellea-jev-adapter` is not registered on PyPI yet. Before its
-first release, configure a pending Trusted Publisher in the PyPI account that
-will own the package:
+The `mellea-jev-adapter` project is already published on PyPI. Its release
+workflow uses the following Trusted Publisher configuration. For a new project
+or fork, configure a pending publisher before its first release:
 
 - Publisher: GitHub Actions
 - Project name: `mellea-jev-adapter`
@@ -27,18 +27,23 @@ and [Publishing with a Trusted Publisher](https://docs.pypi.org/trusted-publishe
 
 ## Release steps
 
-1. Update `project.version` in `pyproject.toml` and merge that change into
-   `main`.
+1. Update `project.version` in `pyproject.toml`, `__version__` in
+   `src/mellea_jev/__init__.py`, and `CHANGELOG.md`. Merge the change into `main`
+   after CI and review.
 2. Create and push the matching version tag from the merged commit, for example:
 
    ```bash
-   git tag v0.1.1
-   git push origin v0.1.1
+   git tag v0.2.0
+   git push origin v0.2.0
    ```
 
 3. Follow the `Release package` workflow in GitHub Actions. A mismatch, a tag
    outside `main`, a failed compatibility job, or a failed build prevents the
    publish job from running.
+
+4. Verify the new version on PyPI with a clean installation, then create a
+   public GitHub release for the same tag with the changelog notes. Preserve
+   all existing tags and published distributions.
 
 The workflow only publishes on `v*` tags. It does not send requests to Jev;
 live API checks remain opt-in and billable.

@@ -170,6 +170,9 @@ Chat Completions alone is insufficient. The configured URL receives the supplied
 key. HTTP and HTTPS URLs are supported; `OPENAI_BASE_URL` is ignored.
 Thresholds require evaluation on your own data before comparing them with Jev.
 
+ProxyAPI exposes a different Decisions wire format. For a temporary provider
+supporting the same Mellea primitives, see the [experimental ProxyAPI adapter](EXPERIMENTAL_PROXYAPI.md).
+
 From a development checkout, `make openai-live-test` sends one potentially
 billable request when `OPENAI_API_KEY` is set. Ordinary tests skip live requests
 even when a key is present. See the [official Decisions guide](https://developers.openai.com/api/docs/guides/decisions).

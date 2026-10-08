@@ -26,6 +26,44 @@ from mellea_jev import (
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.parametrize("primitive", ["noul", "choice", "score"])
+def test_proxyapi_real_requirement_validate_hook(primitive):
+    import json
+
+    from test_proxyapi_provider import wire
+
+    from mellea_jev.providers.proxyapi import ProxyAPIProvider
+
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        payload = json.loads(request.content)
+        name = next(iter(payload["questions"]))
+        source = {"noul": "bug", "choice": "team", "score": "urgency"}[primitive]
+        body = wire()
+        body["answers"] = {name: body["answers"][source]}
+        return httpx2.Response(200, json=body)
+
+    ctx = Mock(spec=Context)
+    ctx.last_output.return_value = SimpleNamespace(value="Checkout broke.")
+    with ProxyAPIProvider("mock-key", transport=httpx2.MockTransport(handler)) as provider:
+        if primitive == "noul":
+            req = JevVerifier(provider, "Is this a bug?").as_requirement()
+        elif primitive == "choice":
+            req = JevClassifier(
+                provider, "Which team?", criteria={"payments": "Billing", "frontend": "UI"}
+            ).as_requirement("payments", minimum_confidence=0.5)
+        else:
+            req = JevScorer(
+                provider, "Rate urgency.", criteria=["Can wait", "Today"]
+            ).as_requirement(maximum_score=1.0, minimum_confidence=0.5)
+        result = asyncio.run(req.validate(backend=None, ctx=ctx))
+    assert isinstance(req, Requirement) and isinstance(result, ValidationResult)
+    assert bool(result) is True
+    assert len(calls) == 1
+
+
 @pytest.mark.parametrize("p,expected", [(0.98, True), (0.02, False), (0.5, None)])
 def test_openai_real_requirement_validate_hook(p, expected):
     from test_openai_provider import wire

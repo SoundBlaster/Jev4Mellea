@@ -15,7 +15,7 @@ export EVAL_BASE_URL EVAL_API_KEY_ENV EVAL_PROVIDER_LABEL
 EVAL_THRESHOLD ?= 0.10,0.90
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check proxy-live-check proxyapi-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -32,6 +32,7 @@ help: ## Show the available development commands
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
 	  'proxy-live-check Run one potentially billable Jev check through a Proxy' \
+	  'proxyapi-live-check Run one opt-in mixed request through the temporary ProxyAPI adapter' \
 	  'openai-live-test Run one explicitly enabled, potentially billable Decisions smoke test' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
@@ -86,6 +87,10 @@ proxy-live-check: $(INSTALL_STAMP) ## Run one potentially billable Jev check thr
 live-check: $(INSTALL_STAMP) ## Run one live Jev check using the sample input; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	$(PY) examples/live_check.py
+
+proxyapi-live-check: $(INSTALL_STAMP) ## Send one opt-in mixed ProxyAPI request; may incur charges
+	@test -n "$${PROXYAPI_API_KEY:-}" || { echo 'Set PROXYAPI_API_KEY first.' >&2; exit 2; }
+	$(PY) examples/live_proxyapi_check.py --live
 
 openai-live-test: $(INSTALL_STAMP) ## Send one explicitly enabled request to OpenAI; may incur charges
 	@test -n "$${OPENAI_API_KEY:-}" || { echo 'Set OPENAI_API_KEY first.' >&2; exit 2; }

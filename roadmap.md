@@ -42,14 +42,14 @@ stage in a separate pull request and keep `JevClient` as a supported backend.
      Keep SDK types out of Mellea contracts, retries explicitly disabled, and
      errors safe. Verify SDK-version compatibility, request mapping, refusal,
      and malformed or missing answers with mocks; add an opt-in live smoke test.
-   - **Implemented in the OpenAI stack — Choice.** Adapt configured labels and criteria to fixed choices and
+   - **In review ([PR #36](https://github.com/SoundBlaster/Jev4Mellea/pull/36)) — Choice.** Adapt configured labels and criteria to fixed choices and
      return `ChoiceResult`. Validate selected labels, distributions, and
      confidence semantics against the documented contract. Preserve existing
      Mellea classifier and requirement interfaces through the Choice protocol.
-   - **Implemented in the OpenAI stack — Score.** Adapt the configured scale and rubric to score levels and
+   - **In review ([PR #37](https://github.com/SoundBlaster/Jev4Mellea/pull/37)) — Score.** Adapt the configured scale and rubric to score levels and
      return `ScoreResult`. Establish how the vendor's score and confidence map
      to our scale; reject unsupported mappings explicitly.
-   - **Implemented in the OpenAI stack — Noul evaluation runner.** Select OpenAI,
+   - **In review ([PR #38](https://github.com/SoundBlaster/Jev4Mellea/pull/38)) — Noul evaluation runner.** Select OpenAI,
      TypeSafe, or Laya for the same versioned labeled dataset. Save source labels,
      returned models, and raw probabilities; report false-acceptance,
      false-rejection, and uncertain rates for offline threshold sweeps.

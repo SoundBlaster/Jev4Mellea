@@ -91,7 +91,7 @@ Replace the example URL with your Proxy's API root. From a checkout,
 
 From a checkout, install the optional official SDK with
 `pip install -e '.[openai]'` and set `OPENAI_API_KEY`.
-The Decisions API is in public beta. This provider supports Noul verification
+The Decisions API is in public beta. This provider supports Noul verification,
 Choice classification, and Score rubrics, with one question per request.
 
 ```python

@@ -86,11 +86,11 @@ predicate не имеет отдельного поля критериев true/
 
 SDK подключается только при создании провайдера через extra `openai`.
 По умолчанию используется официальный endpoint. Явный `base_url` выбирает
-CoreInfra или другой gateway, реализующий Decisions API: путь `/decisions`
+Proxy, реализующий Decisions API: путь `/decisions`
 добавляется к переданному API-префиксу. `OPENAI_BASE_URL` игнорируется.
 Допустимы абсолютные HTTP(S) URL без credentials, query и fragment.
-API key отправляется на явно выбранный адрес; live-совместимость CoreInfra
-не проверена. Редиректы и environment proxies отключены,
+API key отправляется на явно выбранный адрес; live-совместимость конкретного
+Proxy с Decisions API требует отдельной проверки. Редиректы и environment proxies отключены,
 `max_retries=0`. Live-проверка запускается только через явный opt-in
 `RUN_LIVE_OPENAI=1` и `OPENAI_API_KEY` либо `make openai-live-test`.
 Калибровка порогов относительно Jev, Choice и Score остаются задачами roadmap.

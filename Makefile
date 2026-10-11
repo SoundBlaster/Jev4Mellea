@@ -9,10 +9,16 @@ EVAL_PREDICTIONS ?=
 EVAL_PROVIDER ?= typesafe
 EVAL_MODEL ?=
 EVAL_BASE_URL ?=
+EVAL_ENDPOINT_URL ?=
 EVAL_API_KEY_ENV ?=
 EVAL_PROVIDER_LABEL ?=
-export EVAL_BASE_URL EVAL_API_KEY_ENV EVAL_PROVIDER_LABEL
+export EVAL_BASE_URL EVAL_ENDPOINT_URL EVAL_API_KEY_ENV EVAL_PROVIDER_LABEL
 EVAL_THRESHOLD ?= 0.10,0.90
+PROXY_PROVIDER ?= typesafe
+PROXY_MODEL ?=
+PROXY_BASE_URL ?=
+PROXY_ENDPOINT_URL ?=
+export PROXY_PROVIDER PROXY_MODEL PROXY_BASE_URL PROXY_ENDPOINT_URL
 
 .DEFAULT_GOAL := help
 .PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
@@ -31,7 +37,7 @@ help: ## Show the available development commands
 	  'ollama-test      Run the local Ollama repair test; Jev HTTP is mocked' \
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
-	  'proxy-live-check Run one potentially billable Jev check through a Proxy' \
+	  'proxy-live-check Run one billable check through a TypeSafe or OpenAI Proxy (base or exact URL)' \
 	  'openai-live-test Run three opt-in Decisions smoke tests (Noul, Choice, Score; billable)' \
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
@@ -78,10 +84,16 @@ live-test: $(INSTALL_STAMP) ## Send explicitly enabled requests to TypeSafe; thi
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	RUN_LIVE_JEV=1 $(PY) -m pytest -q tests/test_live_jev.py
 
-proxy-live-check: $(INSTALL_STAMP) ## Run one potentially billable Jev check through a configured Proxy
+proxy-live-check: $(INSTALL_STAMP) ## Run one potentially billable check through a configured Proxy
 	@test -n "$${PROXY_API_KEY:-}" || { echo 'Set PROXY_API_KEY first.' >&2; exit 2; }
-	@test -n "$${PROXY_BASE_URL:-}" || { echo 'Set PROXY_BASE_URL to the TypeSafe-compatible API root first.' >&2; exit 2; }
-	$(PY) examples/live_check.py --base-url "$${PROXY_BASE_URL}" --api-key-env PROXY_API_KEY
+	@set --; \
+	if [ -n "$$PROXY_BASE_URL" ] && [ -n "$$PROXY_ENDPOINT_URL" ]; then \
+	  echo 'Set only one of PROXY_BASE_URL or PROXY_ENDPOINT_URL.' >&2; exit 2; \
+	elif [ -n "$$PROXY_ENDPOINT_URL" ]; then set -- --endpoint-url "$$PROXY_ENDPOINT_URL"; \
+	elif [ -n "$$PROXY_BASE_URL" ]; then set -- --base-url "$$PROXY_BASE_URL"; \
+	else echo 'Set PROXY_BASE_URL or PROXY_ENDPOINT_URL first.' >&2; exit 2; fi; \
+	if [ -n "$$PROXY_MODEL" ]; then set -- "$$@" --model "$$PROXY_MODEL"; fi; \
+	$(PY) examples/live_check.py --provider "$$PROXY_PROVIDER" --api-key-env PROXY_API_KEY "$$@"
 
 live-check: $(INSTALL_STAMP) ## Run one live Jev check using the sample input; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
@@ -103,6 +115,7 @@ evaluate: $(INSTALL_STAMP) ## Compute metrics from saved predictions; performs n
 live-evaluate: $(INSTALL_STAMP) ## Explicitly evaluate labeled examples; may send text or download a local model
 	@set --; \
 	if [ -n "$${EVAL_BASE_URL:-}" ]; then set -- "$$@" --base-url "$$EVAL_BASE_URL"; fi; \
+	if [ -n "$${EVAL_ENDPOINT_URL:-}" ]; then set -- "$$@" --endpoint-url "$$EVAL_ENDPOINT_URL"; fi; \
 	if [ -n "$${EVAL_API_KEY_ENV:-}" ]; then set -- "$$@" --api-key-env "$$EVAL_API_KEY_ENV"; fi; \
 	if [ -n "$${EVAL_PROVIDER_LABEL:-}" ]; then set -- "$$@" --provider-label "$$EVAL_PROVIDER_LABEL"; fi; \
 	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --live --provider '$(EVAL_PROVIDER)' $(if $(EVAL_MODEL),--model '$(EVAL_MODEL)',) --threshold '$(EVAL_THRESHOLD)' $(if $(EVAL_PREDICTIONS),--save-predictions '$(EVAL_PREDICTIONS)',) "$$@"

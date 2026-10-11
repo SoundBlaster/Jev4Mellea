@@ -397,8 +397,14 @@ def _parser() -> argparse.ArgumentParser:
     mode.add_argument("--live", action="store_true", help="Explicitly run model inference")
     parser.add_argument("--provider", choices=("typesafe", "openai", "laya"), default="typesafe")
     parser.add_argument("--model", help="Requested model/checkpoint (defaults depend on provider)")
-    parser.add_argument(
+    connection = parser.add_mutually_exclusive_group()
+    connection.add_argument(
         "--base-url", type=_nonempty_argument, help="Explicit TypeSafe or OpenAI Proxy API prefix"
+    )
+    connection.add_argument(
+        "--endpoint-url",
+        type=_nonempty_argument,
+        help="Complete operation URL; no path is appended",
     )
     parser.add_argument(
         "--api-key-env",
@@ -408,7 +414,7 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--provider-label",
         type=_nonempty_argument,
-        help="Source label saved in predictions and metrics (default: PROVIDER-proxy with --base-url)",
+        help="Source label saved in predictions and metrics (default: PROVIDER-proxy for custom URLs)",
     )
     parser.add_argument(
         "--threshold",
@@ -428,33 +434,40 @@ def _run_live(
     dataset: LabeledDataset,
     *,
     base_url: str | None = None,
+    endpoint_url: str | None = None,
     api_key_env: str | None = None,
     provider_label: str | None = None,
 ) -> list[Prediction]:
-    label = provider_label or (f"{provider_name}-proxy" if base_url is not None else provider_name)
-    if base_url is not None and api_key_env is None:
-        raise ValueError("--base-url requires an explicit --api-key-env.")
+    if base_url is not None and endpoint_url is not None:
+        raise ValueError("Supply only one of --base-url or --endpoint-url.")
+    custom_url = base_url is not None or endpoint_url is not None
+    label = provider_label or (f"{provider_name}-proxy" if custom_url else provider_name)
+    if custom_url and api_key_env is None:
+        raise ValueError("--base-url or --endpoint-url requires an explicit --api-key-env.")
+    url_options = {
+        name: value
+        for name, value in (("base_url", base_url), ("endpoint_url", endpoint_url))
+        if value is not None
+    }
     key = None if api_key_env is None else os.environ.get(api_key_env, "")
     if api_key_env is not None and not key:
         raise ValueError("Set the API key environment variable selected by --api-key-env.")
     if provider_name == "typesafe":
         from mellea_jev import JevClient
-        from mellea_jev.providers.typesafe import BASE_URL
 
         with JevClient(
             api_key=key,
             model=model or "jev-latest",
-            base_url=BASE_URL if base_url is None else base_url,
+            **url_options,
         ) as provider:
             return collect_predictions(dataset, provider, provider_name=label)
     if provider_name == "openai":
         from mellea_jev import OpenAIProvider
-        from mellea_jev.providers.openai import BASE_URL as OPENAI_BASE_URL
 
         with OpenAIProvider(
             api_key=key,
             model=model or "gpt-6-luna",
-            base_url=OPENAI_BASE_URL if base_url is None else base_url,
+            **url_options,
         ) as openai_provider:
             return collect_predictions(dataset, openai_provider, provider_name=label)
     try:
@@ -475,15 +488,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.save_predictions and not args.live:
         parser.error("--save-predictions can only be used with --live.")
     if not args.live and any(
-        value is not None for value in (args.base_url, args.api_key_env, args.provider_label)
+        value is not None
+        for value in (args.base_url, args.endpoint_url, args.api_key_env, args.provider_label)
     ):
         parser.error("Proxy connection options and --provider-label require --live.")
     if args.provider not in ("typesafe", "openai") and (
-        args.base_url is not None or args.api_key_env is not None
+        args.base_url is not None or args.endpoint_url is not None or args.api_key_env is not None
     ):
-        parser.error("--base-url and --api-key-env require --provider typesafe or openai.")
-    if args.base_url is not None and args.api_key_env is None:
-        parser.error("--base-url requires an explicit --api-key-env.")
+        parser.error("Connection options require --provider typesafe or openai.")
+    if (args.base_url is not None or args.endpoint_url is not None) and args.api_key_env is None:
+        parser.error("--base-url or --endpoint-url requires an explicit --api-key-env.")
     try:
         dataset = load_dataset(args.dataset)
         if args.live:
@@ -492,6 +506,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.model,
                 dataset,
                 base_url=args.base_url,
+                endpoint_url=args.endpoint_url,
                 api_key_env=args.api_key_env,
                 provider_label=args.provider_label,
             )

@@ -23,6 +23,15 @@ from examples.evaluate import (
     [
         ({}, "https://api.openai.com/v1/decisions", "official-test-key", "openai"),
         (
+            {
+                "endpoint_url": "https://proxy.example/tenant/a%2Fb/decide/",
+                "api_key_env": "PROXY_API_KEY",
+            },
+            "https://proxy.example/tenant/a%2Fb/decide/",
+            "proxy-test-key",
+            "openai-proxy",
+        ),
+        (
             {"base_url": "https://proxy.example/nested/openai/v1/", "api_key_env": "PROXY_API_KEY"},
             "https://proxy.example/nested/openai/v1/decisions",
             "proxy-test-key",
@@ -159,9 +168,21 @@ def test_missing_selected_openai_key_never_falls_back(monkeypatch):
 
 
 @pytest.mark.parametrize("provider", ["typesafe", "openai"])
-def test_internal_proxy_configuration_also_requires_explicit_key_env(provider):
+@pytest.mark.parametrize("url_option", ["base_url", "endpoint_url"])
+def test_internal_proxy_configuration_also_requires_explicit_key_env(provider, url_option):
     with pytest.raises(ValueError, match="explicit --api-key-env"):
-        _run_live(provider, None, dataset(), base_url="https://proxy.example")
+        _run_live(provider, None, dataset(), **{url_option: "https://proxy.example"})
+
+
+def test_internal_url_options_are_mutually_exclusive():
+    with pytest.raises(ValueError, match="only one"):
+        _run_live(
+            "typesafe",
+            None,
+            dataset(),
+            base_url="https://proxy.example",
+            endpoint_url="https://proxy.example/decide",
+        )
 
 
 def test_cli_requires_key_env_for_openai_proxy():

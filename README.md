@@ -101,7 +101,15 @@ The adapter retains its dictionary `state` contract. Without an explicit
 `TYPESAFE_BASE_URL`. Requests never follow redirects or retry automatically.
 Replace the example URL with your Proxy's API root. From a checkout,
 `make proxy-live-check` runs one potentially billable verification with
-`PROXY_API_KEY` and `PROXY_BASE_URL` set in the environment; CI uses mocks.
+`PROXY_API_KEY` and either `PROXY_BASE_URL` or `PROXY_ENDPOINT_URL` set in the
+environment; CI uses mocks. For an exact operation URL:
+
+```bash
+make proxy-live-check PROXY_ENDPOINT_URL=https://proxy.example/models/jev/evaluate
+```
+
+`PROXY_PROVIDER` defaults to `typesafe`; `PROXY_MODEL` can override the model.
+The two URL variables are mutually exclusive.
 
 ### Use OpenAI Decisions API
 
@@ -203,8 +211,27 @@ The gateway must implement the OpenAI Decisions request/response contract; suppo
 Chat Completions alone is insufficient. The configured URL receives the supplied
 key. HTTP and HTTPS URLs are supported; `OPENAI_BASE_URL` is ignored.
 Thresholds require evaluation on your own data before comparing them with Jev.
-The command-line examples below currently configure API roots with `base_url`;
-exact operation URLs are available through the Python constructors.
+The command-line examples support mutually exclusive `--base-url` and
+`--endpoint-url` flags. A custom URL requires `--api-key-env` to explicitly
+select the variable containing the Proxy key.
+
+For one potentially billable Noul check through an OpenAI-compatible Proxy:
+
+```bash
+make proxy-live-check PROXY_PROVIDER=openai PROXY_MODEL=gpt-6-luna \
+  PROXY_ENDPOINT_URL=https://proxy.example/models/luna/decide
+```
+
+Set `PROXY_API_KEY` locally before running. The same check can be launched directly:
+
+```bash
+python examples/live_check.py --provider openai --model gpt-6-luna \
+  --endpoint-url https://proxy.example/models/luna/decide --api-key-env PROXY_API_KEY
+```
+
+The smoke command makes one request and exits with `0` for pass, `1` for fail,
+`2` for uncertain, or `3` if the check could not complete. Invalid CLI arguments
+exit with `2` before constructing a provider.
 
 From a development checkout, set `OPENAI_API_KEY` locally and run:
 
@@ -518,11 +545,21 @@ make live-evaluate EVAL_PROVIDER=typesafe \
   EVAL_PROVIDER_LABEL=typesafe-proxy-a EVAL_PREDICTIONS=/tmp/proxy-predictions.jsonl
 ```
 
+When a Proxy changes the operation path, replace `--base-url` with
+`--endpoint-url`, or `EVAL_BASE_URL` with `EVAL_ENDPOINT_URL`. The full URL is
+used without adding a suffix:
+
+```bash
+make live-evaluate EVAL_PROVIDER=openai EVAL_MODEL=gpt-6-luna \
+  EVAL_ENDPOINT_URL=https://proxy.example/models/luna/decide EVAL_API_KEY_ENV=PROXY_API_KEY \
+  EVAL_PROVIDER_LABEL=openai-proxy-a EVAL_PREDICTIONS=/tmp/openai-proxy-predictions.jsonl
+```
+
 `--provider` selects the implementation; `--provider-label` sets the `provider`
-field in saved predictions and metric groups. With an explicit `--base-url`,
+field in saved predictions and metric groups. With an explicit custom URL,
 the default label is `typesafe-proxy` or `openai-proxy`; otherwise it is the implementation name.
 Use distinct labels for distinct Proxy sources, even if they return the same
-model name. An explicit `--base-url` requires `--api-key-env`. Connection flags
+model name. Both URL flags require `--api-key-env` and are mutually exclusive. Connection flags
 require live TypeSafe or OpenAI mode; labels require live
 mode and can also distinguish Laya checkpoints. URLs and keys are not saved in
 prediction snapshots. Without connection flags, TypeSafe still uses its

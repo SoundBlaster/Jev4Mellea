@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 — 2026-10-11
 
 - Add optional `endpoint_url` to `OpenAIProvider` and `TypeSafeProvider`
   (`JevClient`) for gateways with custom operation paths. The full URL is used

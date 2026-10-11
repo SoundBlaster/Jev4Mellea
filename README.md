@@ -80,8 +80,24 @@ with JevClient(
     print(result.answers["greeting"])
 ```
 
+If your Proxy changes the operation path itself, pass the complete URL instead:
+
+```python
+with JevClient(
+    api_key=os.environ["PROXY_API_KEY"],
+    endpoint_url="https://proxy.example/models/jev/evaluate",
+    model="jev-latest",
+) as jev:
+    result = jev.noul(state={"text": "Hello!"}, question="Is the text a greeting?")
+```
+
+`endpoint_url` is used as the exact operation address, without adding
+`/v1/systemone`. It applies to Noul, Choice, Score, and batched `system_one`
+requests. Supply either `base_url` or `endpoint_url`; passing both raises
+`ValueError`, even if `base_url` is the official default.
+
 The adapter retains its dictionary `state` contract. Without an explicit
-`base_url`, it uses the official TypeSafe endpoint and ignores
+`base_url` or `endpoint_url`, it uses the official TypeSafe endpoint and ignores
 `TYPESAFE_BASE_URL`. Requests never follow redirects or retry automatically.
 Replace the example URL with your Proxy's API root. From a checkout,
 `make proxy-live-check` runs one potentially billable verification with
@@ -165,10 +181,30 @@ with OpenAIProvider(
     result = provider.noul(state={"candidate": "Hello!"}, question="Is it a greeting?")
 ```
 
-The gateway must implement the Decisions `/decisions` contract; support for
+For a Proxy with a different operation path, use its complete endpoint:
+
+```python
+with OpenAIProvider(
+    api_key=os.environ["PROXY_API_KEY"],
+    endpoint_url="https://proxy.example/models/luna/decide",
+    model="gpt-6-luna",
+) as provider:
+    result = provider.noul(state={"candidate": "Hello!"}, question="Is it a greeting?")
+```
+
+`endpoint_url` applies to Noul, Choice, and Score without appending `/decisions`.
+Supply either `base_url` or `endpoint_url`; passing both raises `ValueError`.
+Both URL options require an absolute HTTP(S) address without embedded
+credentials, query parameters, or fragments. Nested and percent-encoded paths,
+explicit ports, and trailing slashes are supported. URLs are configured per
+provider instance; there is no endpoint auto-discovery or protocol conversion.
+
+The gateway must implement the OpenAI Decisions request/response contract; support for
 Chat Completions alone is insufficient. The configured URL receives the supplied
 key. HTTP and HTTPS URLs are supported; `OPENAI_BASE_URL` is ignored.
 Thresholds require evaluation on your own data before comparing them with Jev.
+The command-line examples below currently configure API roots with `base_url`;
+exact operation URLs are available through the Python constructors.
 
 From a development checkout, set `OPENAI_API_KEY` locally and run:
 

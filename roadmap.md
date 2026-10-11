@@ -79,10 +79,14 @@ plugin discovery.
   conversion, or an unverified MPS device setting alone do not meet this condition.
 - Start with `d3-edge` (0.59B) on the user's MacBook Pro M4 Pro with 24 GB unified
   memory; compare `d3-lite` only after the smaller model passes the checks.
-- Verify Noul, Choice, Score, and batched questions through the existing
+- Verify individual Noul, Choice, and Score calls through the existing
   provider contracts, including distributions, confidence semantics, model,
   request ID, usage when available, and safe handling of malformed responses.
   Prefer configuring an existing compatible provider over adding a new adapter.
+- Check batched questions separately against the upstream D3 runtime, or through
+  `JevClient.system_one` if the runtime exposes a compatible HTTP API. The
+  provider-neutral protocols currently cover individual primitive calls only;
+  batching is not a requirement of those contracts.
 - Evaluate representative labeled examples with a distinct provider label.
   Record false-acceptance, false-rejection, and uncertain rates by model and
   threshold pair; measure cold startup, warm p50/p95 latency, and peak memory

@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Add optional `endpoint_url` to `OpenAIProvider` and `TypeSafeProvider`
+  (`JevClient`) for gateways with custom operation paths. The full URL is used
+  without appending `/decisions` or `/v1/systemone`; `base_url` retains its API-root
+  behavior. Supplying both URL arguments raises `ValueError`.
+- Share URL validation and exact-operation routing across the HTTP providers.
+  Preserve SDK payloads, authentication, timeouts, metadata, and response
+  validation; redirects, environment proxies, and automatic retries stay disabled.
+
 ## 0.3.0 — 2026-10-09
 
 - Extend the optional OpenAI Decisions provider with Choice and Score using

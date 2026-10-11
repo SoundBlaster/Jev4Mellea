@@ -19,6 +19,7 @@ from ..criteria import (
     probability,
 )
 from ..results import ChoiceResult, NoulResult, ScoreResult, UsageMetadata
+from ._http import _DefaultBaseURL, _http_client
 
 if TYPE_CHECKING:
     from openai.types.decision import Answer
@@ -59,7 +60,9 @@ class OpenAIProvider:
     Image input and batching are outside the current interface.
 
     The official endpoint is the default. ``base_url`` explicitly selects a
-    compatible gateway; OPENAI_BASE_URL is not read. Environment proxies and
+    compatible gateway root before ``/decisions``. ``endpoint_url`` instead
+    selects the complete operation URL without appending a suffix. Supply only
+    one URL argument; OPENAI_BASE_URL is not read. Environment proxies and
     redirects are disabled. Requests are never automatically retried. Timeout is per HTTP
     operation, not an end-to-end deadline. Close with a context manager.
     """
@@ -69,7 +72,8 @@ class OpenAIProvider:
         api_key: str | None = None,
         *,
         model: str = "gpt-6-luna",
-        base_url: str = BASE_URL,
+        base_url: str = _DefaultBaseURL(BASE_URL),
+        endpoint_url: str | None = None,
         timeout: float = 10.0,
         transport: httpx2.BaseTransport | None = None,
     ) -> None:
@@ -82,24 +86,6 @@ class OpenAIProvider:
             raise ValueError("model must be a nonempty string.")
         if type(timeout) not in (int, float) or not math.isfinite(timeout) or timeout <= 0:
             raise ValueError("timeout must be finite and positive.")
-        if not isinstance(base_url, str) or any(ch.isspace() for ch in base_url):
-            raise ValueError(
-                "base_url must be an absolute HTTP(S) URL without credentials or query."
-            )
-        try:
-            url = httpx2.URL(base_url)
-        except httpx2.InvalidURL:
-            raise ValueError("base_url must be a valid HTTP(S) URL.") from None
-        if (
-            not url.is_absolute_url
-            or url.scheme not in ("http", "https")
-            or url.userinfo
-            or url.query
-            or url.fragment
-        ):
-            raise ValueError(
-                "base_url must be an absolute HTTP(S) URL without credentials or query."
-            )
         try:
             from openai import OpenAI, OpenAIError
         except ImportError:
@@ -108,8 +94,12 @@ class OpenAIProvider:
             ) from None
 
         self.model = model
-        http_client = httpx2.Client(
-            timeout=timeout, follow_redirects=False, trust_env=False, transport=transport
+        base_url, http_client = _http_client(
+            base_url=base_url,
+            endpoint_url=endpoint_url,
+            operation_path="/decisions",
+            timeout=timeout,
+            transport=transport,
         )
         try:
             self._client = OpenAI(

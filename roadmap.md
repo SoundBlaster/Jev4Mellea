@@ -70,6 +70,27 @@ TypeSafe wire models, while existing Jev callers keep `JevClient`. This meets
 the current portability milestone; it does not by itself establish a need for
 plugin discovery.
 
+## Deferred — Decision 3.0 on Apple Silicon
+
+- **Start condition:** a maintained, ready-to-run distribution of
+  [Decision 3.0 (D3)](https://huggingface.co/collections/vllm-sr/decision-30)
+  documents working native Apple Silicon acceleration, for example through
+  MLX, Core ML, Metal, Ollama, or LM Studio. Available weights, an experimental
+  conversion, or an unverified MPS device setting alone do not meet this condition.
+- Start with `d3-edge` (0.59B) on the user's MacBook Pro M4 Pro with 24 GB unified
+  memory; compare `d3-lite` only after the smaller model passes the checks.
+- Verify Noul, Choice, Score, and batched questions through the existing
+  provider contracts, including distributions, confidence semantics, model,
+  request ID, usage when available, and safe handling of malformed responses.
+  Prefer configuring an existing compatible provider over adding a new adapter.
+- Evaluate representative labeled examples with a distinct provider label.
+  Record false-acceptance, false-rejection, and uncertain rates by model and
+  threshold pair; measure cold startup, warm p50/p95 latency, and peak memory
+  separately. Record the model revision, runtime version, and actual backend.
+- Keep model downloads and local inference opt-in and outside ordinary CI.
+  Completion requires a successful run on the target Mac and saved evaluation
+  results, with any differences from the upstream model documented.
+
 ## Completed primitive capabilities
 
 ### Choice support (PR #3)

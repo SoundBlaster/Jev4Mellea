@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Add mutually exclusive `--endpoint-url` and `--base-url` options to the
+  evaluation runner and single-request smoke CLI. Support TypeSafe and OpenAI
+  smoke checks with explicit Proxy key selection and provider/model options.
+- Add `EVAL_ENDPOINT_URL` and `PROXY_ENDPOINT_URL` Makefile configuration;
+  preserve opt-in inference and offline scoring without saving URLs or keys.
+
 ## 0.4.0 — 2026-10-11
 
 - Add optional `endpoint_url` to `OpenAIProvider` and `TypeSafeProvider`

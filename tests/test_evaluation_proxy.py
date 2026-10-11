@@ -35,6 +35,15 @@ def dataset():
     [
         ({}, "https://api.typesafe.ai/v1/systemone", "official-test-key", "typesafe"),
         (
+            {
+                "endpoint_url": "https://proxy.example/models/jev/evaluate/",
+                "api_key_env": "PROXY_API_KEY",
+            },
+            "https://proxy.example/models/jev/evaluate/",
+            "proxy-test-key",
+            "typesafe-proxy",
+        ),
+        (
             {"base_url": "https://proxy.example/typesafe/api", "api_key_env": "PROXY_API_KEY"},
             "https://proxy.example/typesafe/api/v1/systemone",
             "proxy-test-key",
@@ -110,11 +119,24 @@ def test_live_configuration_and_snapshot_roundtrip(
     "mode,options",
     [
         (["--predictions", "unused.jsonl"], ["--base-url", "https://proxy.example"]),
+        (["--predictions", "unused.jsonl"], ["--endpoint-url", "https://proxy.example/decide"]),
         (["--predictions", "unused.jsonl"], ["--api-key-env", "PROXY_API_KEY"]),
         (["--predictions", "unused.jsonl"], ["--provider-label", "proxy-a"]),
         (["--live", "--provider", "laya"], ["--base-url", "https://proxy.example"]),
+        (["--live", "--provider", "laya"], ["--endpoint-url", "https://proxy.example/decide"]),
         (["--live", "--provider", "laya"], ["--api-key-env", "PROXY_API_KEY"]),
         (["--live"], ["--base-url", "https://proxy.example"]),
+        (["--live"], ["--endpoint-url", "https://proxy.example/decide"]),
+        (["--live"], ["--endpoint-url", " "]),
+        (
+            ["--live"],
+            [
+                "--base-url",
+                "https://proxy.example",
+                "--endpoint-url",
+                "https://proxy.example/decide",
+            ],
+        ),
         (["--live"], ["--provider-label", " "]),
         (["--live"], ["--api-key-env", ""]),
     ],
@@ -161,8 +183,9 @@ def test_sources_with_same_model_remain_separate():
 
 
 @pytest.mark.parametrize("provider", ["typesafe", "openai"])
+@pytest.mark.parametrize("url_option", ["base_url", "endpoint_url"])
 def test_cli_forwards_proxy_options_and_offline_scoring_reuses_snapshot(
-    monkeypatch, tmp_path, capsys, provider
+    monkeypatch, tmp_path, capsys, provider, url_option
 ):
     import examples.evaluate as runner
 
@@ -193,7 +216,7 @@ def test_cli_forwards_proxy_options_and_offline_scoring_reuses_snapshot(
                 provider,
                 "--model",
                 "jev-requested",
-                "--base-url",
+                "--" + url_option.replace("_", "-"),
                 "https://proxy.example/typesafe/api",
                 "--api-key-env",
                 "PROXY_API_KEY",
@@ -212,7 +235,12 @@ def test_cli_forwards_proxy_options_and_offline_scoring_reuses_snapshot(
             provider,
             "jev-requested",
             {
-                "base_url": "https://proxy.example/typesafe/api",
+                "base_url": "https://proxy.example/typesafe/api"
+                if url_option == "base_url"
+                else None,
+                "endpoint_url": "https://proxy.example/typesafe/api"
+                if url_option == "endpoint_url"
+                else None,
                 "api_key_env": "PROXY_API_KEY",
                 "provider_label": "proxy-a",
             },

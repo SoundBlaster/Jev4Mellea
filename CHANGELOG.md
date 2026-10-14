@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.5.0 — 2026-10-14
+
+- Add `ScaleDownProvider` for Noul, Choice, and Score decisions through the
+  ScaleDown Decisions API, with response validation and usage metadata.
+- Add ScaleDown to the labeled evaluation runner and record an opt-in live
+  smoke run with reproducible predictions and threshold metrics. The four-case
+  synthetic sample demonstrates the workflow and does not establish production
+  quality.
 - Add mutually exclusive `--endpoint-url` and `--base-url` options to the
   evaluation runner and single-request smoke CLI. Support TypeSafe and OpenAI
   smoke checks with explicit Proxy key selection and provider/model options.

@@ -533,6 +533,18 @@ The [live Proxy smoke run](examples/evaluation/live-proxy-benchmark-2026-10-08.m
 records the same dataset through a TypeSafe-compatible Proxy, with saved
 predictions and offline-reproducible metrics.
 
+ScaleDown uses the same runner. `SCALEDOWN_API_KEY` is read only when
+`--live` is selected; custom gateways require an explicitly selected key
+environment variable:
+
+```bash
+make live-evaluate EVAL_PROVIDER=scaledown EVAL_THRESHOLD=0.10,0.90
+```
+
+The default model is `classify-1`. Add `EVAL_PREDICTIONS=...` to save the
+provider outputs for offline threshold comparisons; snapshots contain no API key
+or endpoint URL.
+
 The dataset is versioned JSONL: the first line describes the positive Noul
 requirement; each following line labels one candidate as `accept` or `reject`.
 An optional `reference` is sent with that candidate. For example:

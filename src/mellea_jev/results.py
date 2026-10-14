@@ -10,16 +10,25 @@ from .criteria import probability
 
 @dataclass(frozen=True)
 class UsageMetadata:
-    """Optional token counts as reported by a provider."""
+    """Optional token counts and cost as reported by a provider."""
 
     input_tokens: int | None = None
     output_tokens: int | None = None
+    cost_usd: float | None = None
 
     def __post_init__(self) -> None:
         for name in ("input_tokens", "output_tokens"):
             value = getattr(self, name)
             if value is not None and (type(value) is not int or value < 0):
                 raise ValueError(f"{name} must be a nonnegative integer or None.")
+        if self.cost_usd is not None:
+            if (
+                type(self.cost_usd) not in (int, float)
+                or not math.isfinite(self.cost_usd)
+                or self.cost_usd < 0
+            ):
+                raise ValueError("cost_usd must be a finite nonnegative number or None.")
+            object.__setattr__(self, "cost_usd", float(self.cost_usd))
 
 
 # Compatibility name retained for the original TypeSafe usage object.

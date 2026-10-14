@@ -215,6 +215,51 @@ The command-line examples support mutually exclusive `--base-url` and
 `--endpoint-url` flags. A custom URL requires `--api-key-env` to explicitly
 select the variable containing the Proxy key.
 
+### Use ScaleDown Decisions
+
+`ScaleDownProvider` connects the same Mellea verifier, classifier, and scorer
+contracts to ScaleDown's Decisions endpoint. It supports all three primitives
+and pins the documented `classify-1` model. Set `SCALEDOWN_API_KEY` or pass
+`api_key`; no SDK extra is needed.
+
+```python
+import os
+
+from mellea_jev import JevClassifier, JevScorer, JevVerifier, ScaleDownProvider
+
+with ScaleDownProvider(api_key=os.environ["SCALEDOWN_API_KEY"]) as provider:
+    verification = JevVerifier(
+        provider,
+        "The answer follows the refund policy.",
+        reference="Refunds are available within 30 days.",
+    ).evaluate("The customer can get a refund within 30 days.")
+    routing = JevClassifier(
+        provider,
+        "Which team should handle this ticket?",
+        criteria={"billing": "Payments and refunds", "account": "Sign-in and profiles"},
+    ).classify("I was charged twice.")
+    urgency = JevScorer(
+        provider,
+        "How urgent is this ticket?",
+        criteria=["Can wait", "Fix this week", "Blocks revenue now"],
+    ).evaluate("Checkout is failing for every customer.")
+    print(verification.outcome, routing.choice, urgency.score)
+```
+
+ScaleDown reads `state.text` and `state.document`; this adapter encodes the full
+Mellea state dictionary as JSON in `state.text`, so `candidate` and `reference`
+remain available. Noul outcome criteria are included in the instructions, and
+structured Choice descriptions are serialized as JSON strings. ScaleDown Choice
+and Score confidence is the selected label or top level's probability mass; tune
+`minimum_confidence` for this meaning rather than reusing a threshold from a
+provider with a different confidence definition. Score supports 2–10 levels.
+
+The default URL is `https://api.scaledown.xyz/v1/scaledown`. Pass `base_url` for a
+gateway root or `endpoint_url` for an exact operation URL. Requests use the
+`x-api-key` header, ignore `SCALEDOWN_BASE_URL`, do not follow redirects, and are
+not retried automatically. ScaleDown reports its USD charge through
+`result.usage.cost_usd`; the response currently does not document a request ID.
+
 For one potentially billable Noul check through an OpenAI-compatible Proxy:
 
 ```bash
@@ -607,6 +652,8 @@ private or sensitive examples or prediction snapshots.
 - OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
   and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul, Choice, and Score;
   `gpt-6-luna` is its default model.
+- ScaleDown Decisions requires `SCALEDOWN_API_KEY` for live requests.
+  `ScaleDownProvider` supports Noul, Choice, and Score through `classify-1`.
 
 The CI compatibility matrix runs the package checks with these combinations:
 

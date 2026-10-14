@@ -260,6 +260,45 @@ gateway root or `endpoint_url` for an exact operation URL. Requests use the
 not retried automatically. ScaleDown reports its USD charge through
 `result.usage.cost_usd`; the response currently does not document a request ID.
 
+### Use SubQ Decisions
+
+`SubQProvider` connects the same Mellea verifier, classifier, and scorer
+contracts to the [SubQ Decisions API](https://docs.subq.ai/endpoints/decisions-api/).
+It supports all three primitives through the
+preview model `subq-snap-preview`. Set `SUBQ_API_KEY` or pass `api_key`.
+
+```python
+import os
+
+from mellea_jev import JevClassifier, JevScorer, JevVerifier, SubQProvider
+
+with SubQProvider(api_key=os.environ["SUBQ_API_KEY"]) as provider:
+    verification = JevVerifier(
+        provider,
+        "The answer follows the refund policy.",
+        reference="Refunds are available within 30 days.",
+    ).evaluate("The customer can get a refund within 30 days.")
+    routing = JevClassifier(
+        provider,
+        "Which team should handle this ticket?",
+        criteria={"billing": "Payments and refunds", "account": "Sign-in and profiles"},
+    ).classify("I was charged twice.")
+    urgency = JevScorer(
+        provider,
+        "How urgent is this ticket?",
+        criteria=["Can wait", "Fix this week", "Blocks revenue now"],
+    ).evaluate("Checkout is failing for every customer.")
+    print(verification.outcome, routing.choice, urgency.score)
+```
+
+SubQ accepts object state directly. Pass `base_url` for a gateway root or
+`endpoint_url` for an exact operation URL. Requests use Bearer authentication;
+environment proxies are ignored, redirects are disabled, and requests are not
+retried. The model is in public preview. Review SubQ's
+[data retention policy](https://docs.subq.ai/using-the-api/data-retention/)
+before sending sensitive state. Run one opt-in check with `make subq-live-check`;
+the labeled Noul evaluator also supports `make live-evaluate EVAL_PROVIDER=subq`.
+
 For one potentially billable Noul check through an OpenAI-compatible Proxy:
 
 ```bash
@@ -669,6 +708,9 @@ private or sensitive examples or prediction snapshots.
   `gpt-6-luna` is its default model.
 - ScaleDown Decisions requires `SCALEDOWN_API_KEY` for live requests.
   `ScaleDownProvider` supports Noul, Choice, and Score through `classify-1`.
+- SubQ Decisions requires `SUBQ_API_KEY` for live requests.
+  `SubQProvider` supports Noul, Choice, and Score through the preview model
+  `subq-snap-preview`.
 
 The CI compatibility matrix runs the package checks with these combinations:
 

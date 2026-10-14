@@ -396,14 +396,16 @@ def _parser() -> argparse.ArgumentParser:
     )
     mode.add_argument("--live", action="store_true", help="Explicitly run model inference")
     parser.add_argument(
-        "--provider", choices=("typesafe", "openai", "scaledown", "laya"), default="typesafe"
+        "--provider",
+        choices=("typesafe", "openai", "scaledown", "subq", "laya"),
+        default="typesafe",
     )
     parser.add_argument("--model", help="Requested model/checkpoint (defaults depend on provider)")
     connection = parser.add_mutually_exclusive_group()
     connection.add_argument(
         "--base-url",
         type=_nonempty_argument,
-        help="Explicit TypeSafe, OpenAI, or ScaleDown API prefix",
+        help="Explicit provider API prefix or gateway root",
     )
     connection.add_argument(
         "--endpoint-url",
@@ -483,6 +485,15 @@ def _run_live(
             **url_options,
         ) as scaledown_provider:
             return collect_predictions(dataset, scaledown_provider, provider_name=label)
+    if provider_name == "subq":
+        from mellea_jev import SubQProvider
+
+        with SubQProvider(
+            api_key=key,
+            model=model or "subq-snap-preview",
+            **url_options,
+        ) as subq_provider:
+            return collect_predictions(dataset, subq_provider, provider_name=label)
     try:
         import laya_mlx
     except ImportError as exc:
@@ -505,7 +516,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         for value in (args.base_url, args.endpoint_url, args.api_key_env, args.provider_label)
     ):
         parser.error("Proxy connection options and --provider-label require --live.")
-    if args.provider not in ("typesafe", "openai", "scaledown") and (
+    if args.provider not in ("typesafe", "openai", "scaledown", "subq") and (
         args.base_url is not None or args.endpoint_url is not None or args.api_key_env is not None
     ):
         parser.error("Connection options require a cloud provider.")

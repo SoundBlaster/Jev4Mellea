@@ -8,7 +8,7 @@ from test_client import wire as jev_wire
 from test_openai_provider import wire as openai_wire
 
 from examples import live_check
-from mellea_jev import JevClient, OpenAIProvider
+from mellea_jev import JevClient, OpenAIProvider, SubQProvider
 
 
 @pytest.mark.parametrize("provider", ["typesafe", "openai"])
@@ -87,6 +87,35 @@ def test_smoke_invalid_arguments_construct_no_provider(monkeypatch, options):
     with pytest.raises(SystemExit) as captured:
         live_check.main(options)
     assert captured.value.code == 2
+
+
+def test_subq_smoke_uses_subq_key_and_default_model(monkeypatch, capsys):
+    monkeypatch.setenv("SUBQ_API_KEY", "subq-test-key")
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        assert str(request.url) == "https://api.subq.ai/v1/systemone"
+        assert request.headers["authorization"] == "Bearer subq-test-key"
+        payload = json.loads(request.content)
+        assert payload["model"] == "subq-snap-preview"
+        return httpx2.Response(
+            200,
+            json={
+                "model": "subq-snap-preview",
+                "answers": {"decision": {"type": "noul", "noul": 0.98}},
+            },
+        )
+
+    monkeypatch.setattr(
+        live_check,
+        "SubQProvider",
+        lambda **kwargs: SubQProvider(**kwargs, transport=httpx2.MockTransport(handler)),
+    )
+    assert live_check.main(["--provider", "subq"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["outcome"] == "pass" and report["model"] == "subq-snap-preview"
+    assert len(calls) == 1
 
 
 @pytest.mark.parametrize("provider", ["typesafe", "openai"])

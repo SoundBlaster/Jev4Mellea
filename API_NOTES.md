@@ -121,6 +121,36 @@ Evaluation runner принимает `--live --provider openai` и считае�
 без ключей и URL. Повторный подсчёт порогов работает offline без SDK-вызовов.
 Калибровка порогов относительно Jev и live-бенчмарк OpenAI остаются задачами roadmap.
 
+## SubQ Decisions API
+
+Дата сверки: **2026-10-14**. [Decisions API](https://docs.subq.ai/endpoints/decisions-api/)
+описывает `POST https://api.subq.ai/v1/systemone`, Bearer authentication,
+модель `subq-snap-preview` в public preview, объектное `state` и ответы Noul,
+Choice и Score. Контракт также задаёт 1–16 вопросов на запрос; этот адаптер
+намеренно отправляет один вопрос для каждой примитивной операции.
+
+`SubQProvider` передаёт полный Mellea state как JSON object, map-ит ответы в
+общие `NoulResult`, `ChoiceResult` и `ScoreResult`, сохраняет token usage и
+использует request ID из `x-request-id` или `x-subq-request-id`, если заголовок
+присутствует. API docs не обещают request ID; в нашей одной живой синтетической
+Noul-проверке оба заголовка отсутствовали. Она вернула `p_yes=0.9752783`, модель
+`subq-snap-preview`, `input_tokens=146` и `output_tokens=0`. Это подтверждает
+транспорт и Noul envelope на одном примере, но не проверяет Choice/Score и не
+оценивает качество модели.
+
+Критерии true/false передаются без изменения. Choice поддерживает 2–255
+меток, проверяет совпадение меток и корректность распределения. Score принимает
+2–10 упорядоченных строк и проверяет вероятности, score и legend по запросу.
+Usage допускает только документированные `input_tokens` и `output_tokens`.
+По документации SubQ взимает плату только за входные токены и всегда сообщает
+`output_tokens=0`; `UsageMetadata.cost_usd` поэтому остаётся `None`.
+
+По умолчанию используется `https://api.subq.ai/v1/systemone` и
+`SUBQ_API_KEY`. `base_url` выбирает корень API, а `endpoint_url` — точный адрес
+операции. Внешние proxy-переменные среды игнорируются, redirects и retries
+отключены. Модель фиксирована на опубликованном Decisions ID. Live smoke-run
+и evaluation запускаются только явно; CI использует mock transport.
+
 ## Mellea
 
 Цель: `mellea>=0.7.0,<0.9.0`, Python >=3.11. Исходные ссылки ниже относятся

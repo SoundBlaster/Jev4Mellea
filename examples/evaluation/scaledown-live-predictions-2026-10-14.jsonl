@@ -1,0 +1,5 @@
+{"dataset": "museum-opening-time", "dataset_sha256": "a7d79ab5facd2648460c48b52f900b2ca8f5ebaf56e196107e357f4d2492ca3f", "dataset_version": "1.0.0", "format_version": 1, "type": "prediction_set"}
+{"id": "correct-time", "model": "classify-1", "p_yes": 0.920633113261167, "provider": "scaledown", "type": "prediction"}
+{"id": "wrong-time", "model": "classify-1", "p_yes": 0.1233821973656082, "provider": "scaledown", "type": "prediction"}
+{"id": "correct-with-context", "model": "classify-1", "p_yes": 0.7909286562744742, "provider": "scaledown", "type": "prediction"}
+{"id": "closing-time-confusion", "model": "classify-1", "p_yes": 0.23949281269225045, "provider": "scaledown", "type": "prediction"}

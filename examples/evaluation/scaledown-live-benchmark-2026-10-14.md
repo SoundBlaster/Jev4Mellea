@@ -22,7 +22,8 @@ is a four-example smoke run, not a quality benchmark for production decisions.
 
 The output probabilities were `0.9206`, `0.1234`, `0.7909`, and `0.2395` in
 dataset order. The stricter thresholds leave three examples for review; the
-second pair classifies two additional examples while leaving two uncertain.
+second pair additionally classifies `wrong-time` as a rejection, while two
+examples remain uncertain.
 
 ## Limits
 

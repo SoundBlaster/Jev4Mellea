@@ -38,6 +38,10 @@ from .providers import (
     OpenAIProvider,
     OpenAIProviderError,
     OpenAIRefusalError,
+    ScaleDownHTTPError,
+    ScaleDownProtocolError,
+    ScaleDownProvider,
+    ScaleDownProviderError,
     TypeSafeProvider,
 )
 from .results import UsageMetadata
@@ -94,5 +98,9 @@ __all__ = [
     "OpenAIHTTPError",
     "OpenAIProtocolError",
     "OpenAIRefusalError",
+    "ScaleDownProvider",
+    "ScaleDownProviderError",
+    "ScaleDownHTTPError",
+    "ScaleDownProtocolError",
 ]
 __version__ = "0.4.0"

@@ -8,6 +8,12 @@ from .openai import (
     OpenAIProviderError,
     OpenAIRefusalError,
 )
+from .scaledown import (
+    ScaleDownHTTPError,
+    ScaleDownProtocolError,
+    ScaleDownProvider,
+    ScaleDownProviderError,
+)
 from .typesafe import TypeSafeProvider
 
 __all__ = [
@@ -20,4 +26,8 @@ __all__ = [
     "OpenAIHTTPError",
     "OpenAIProtocolError",
     "OpenAIRefusalError",
+    "ScaleDownProvider",
+    "ScaleDownProviderError",
+    "ScaleDownHTTPError",
+    "ScaleDownProtocolError",
 ]

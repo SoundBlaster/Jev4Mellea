@@ -532,6 +532,9 @@ for a four-example smoke benchmark and its limitations.
 The [live Proxy smoke run](examples/evaluation/live-proxy-benchmark-2026-10-08.md)
 records the same dataset through a TypeSafe-compatible Proxy, with saved
 predictions and offline-reproducible metrics.
+The [ScaleDown live smoke run](examples/evaluation/scaledown-live-benchmark-2026-10-14.md)
+records four predictions and threshold comparisons; it demonstrates API
+compatibility, not production quality.
 
 ScaleDown uses the same runner. `SCALEDOWN_API_KEY` is read only when
 `--live` is selected; custom gateways require an explicitly selected key

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.0 — 2026-10-14
+
 - Add `SubQProvider` for SubQ Decisions Noul, Choice, and Score with strict
   response checks, configurable endpoints, and opt-in live evaluation support.
 

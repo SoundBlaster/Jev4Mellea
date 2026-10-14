@@ -100,3 +100,12 @@ def test_live_evaluation_forwards_exact_url(make_command):
     assert argv[argv.index("--provider-label") + 1] == "proxy-a"
     assert "--base-url" not in argv and "--live" in argv
     assert "mock-secret-key" not in result.stdout + result.stderr
+
+
+def test_subq_smoke_requires_key_and_runs_one_provider_check(make_command):
+    result = make_command("subq-live-check")
+    assert result.returncode != 0 and "SUBQ_API_KEY" in result.stderr
+    result = make_command("subq-live-check", SUBQ_API_KEY="mock-subq-key")
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == ["examples/live_check.py", "--provider", "subq"]
+    assert "mock-subq-key" not in result.stdout + result.stderr

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `SubQProvider` for SubQ Decisions Noul, Choice, and Score with strict
+  response checks, configurable endpoints, and opt-in live evaluation support.
+
 ## 0.5.0 — 2026-10-14
 
 - Add `ScaleDownProvider` for Noul, Choice, and Score decisions through the

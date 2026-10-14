@@ -42,6 +42,10 @@ from .providers import (
     ScaleDownProtocolError,
     ScaleDownProvider,
     ScaleDownProviderError,
+    SubQHTTPError,
+    SubQProtocolError,
+    SubQProvider,
+    SubQProviderError,
     TypeSafeProvider,
 )
 from .results import UsageMetadata
@@ -102,5 +106,9 @@ __all__ = [
     "ScaleDownProviderError",
     "ScaleDownHTTPError",
     "ScaleDownProtocolError",
+    "SubQProvider",
+    "SubQProviderError",
+    "SubQHTTPError",
+    "SubQProtocolError",
 ]
 __version__ = "0.5.0"

@@ -14,6 +14,7 @@ from .scaledown import (
     ScaleDownProvider,
     ScaleDownProviderError,
 )
+from .subq import SubQHTTPError, SubQProtocolError, SubQProvider, SubQProviderError
 from .typesafe import TypeSafeProvider
 
 __all__ = [
@@ -30,4 +31,8 @@ __all__ = [
     "ScaleDownProviderError",
     "ScaleDownHTTPError",
     "ScaleDownProtocolError",
+    "SubQProvider",
+    "SubQProviderError",
+    "SubQHTTPError",
+    "SubQProtocolError",
 ]

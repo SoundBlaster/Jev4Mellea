@@ -7,7 +7,15 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from mellea_jev import JevClient, JevError, JevVerifier, OpenAIProvider, OpenAIProviderError
+from mellea_jev import (
+    JevClient,
+    JevError,
+    JevVerifier,
+    OpenAIProvider,
+    OpenAIProviderError,
+    SubQProvider,
+    SubQProviderError,
+)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -15,7 +23,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--candidate", default="Hello! Thank you for your message.")
     parser.add_argument("--requirement", default="The candidate contains a polite greeting.")
     parser.add_argument("--reference-file", type=Path)
-    parser.add_argument("--provider", choices=("typesafe", "openai"), default="typesafe")
+    parser.add_argument("--provider", choices=("typesafe", "openai", "subq"), default="typesafe")
     parser.add_argument("--model", help="Model name (defaults depend on provider)")
     connection = parser.add_mutually_exclusive_group()
     connection.add_argument("--base-url", help="API root; the SDK appends its operation path")
@@ -31,11 +39,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         for name, value in (("base_url", args.base_url), ("endpoint_url", args.endpoint_url))
         if value is not None
     }
-    provider_type = JevClient if args.provider == "typesafe" else OpenAIProvider
-    default_key_env = "TYPESAFE_API_KEY" if args.provider == "typesafe" else "OPENAI_API_KEY"
-    default_model = (
-        os.environ.get("JEV_MODEL", "jev-latest") if args.provider == "typesafe" else "gpt-6-luna"
-    )
+    provider_type = {
+        "typesafe": JevClient,
+        "openai": OpenAIProvider,
+        "subq": SubQProvider,
+    }[args.provider]
+    default_key_env = {
+        "typesafe": "TYPESAFE_API_KEY",
+        "openai": "OPENAI_API_KEY",
+        "subq": "SUBQ_API_KEY",
+    }[args.provider]
+    default_model = {
+        "typesafe": os.environ.get("JEV_MODEL", "jev-latest"),
+        "openai": "gpt-6-luna",
+        "subq": "subq-snap-preview",
+    }[args.provider]
     try:
         reference = args.reference_file.read_text(encoding="utf-8") if args.reference_file else None
         with provider_type(
@@ -55,7 +73,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             verdict = verifier.evaluate(args.candidate)
         print(json.dumps(verdict.to_dict(), ensure_ascii=False, indent=2))
         return {"pass": 0, "fail": 1, "uncertain": 2}[verdict.outcome]
-    except (JevError, OpenAIProviderError, ValueError, OSError, ImportError) as exc:
+    except (
+        JevError,
+        OpenAIProviderError,
+        SubQProviderError,
+        ValueError,
+        OSError,
+        ImportError,
+    ) as exc:
         print(f"Check did not complete: {exc}", file=sys.stderr)
         return 3
 

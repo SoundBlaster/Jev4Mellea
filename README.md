@@ -17,8 +17,9 @@ continues to manage generation and repair.
 - **Score text** on an ordered scale with TypeSafe Score.
 - **Ask several questions in one request** and inspect returned token usage.
 - **Connect checks to Mellea `Requirement`s** so they can participate in sampling.
+- **Check images with Jev** using explicit PNG/JPEG attachments (experimental).
 
-This is an unofficial, synchronous adapter. Jev evaluates text; it does not
+This is an unofficial, synchronous adapter. Jev evaluates supplied content; it does not
 generate or repair it.
 
 ## Quick start
@@ -59,7 +60,98 @@ Jev response.
 
 ## Examples
 
+### Check an image with Jev (experimental)
+
+Attach prepared PNG/JPEG bytes to Noul, Choice, Score, or a mixed `system_one`
+request. Refer to each named image as `images.<name>` in the question:
+
+```python
+from mellea_jev import ImageInput, JevClient
+
+image = ImageInput.from_file("scene.png")
+with JevClient(model="jev-1.14.0") as jev:
+    result = jev.noul(
+        state={},
+        images={"scene": image},
+        question="Is a pedestrian crossing visible in `images.scene`?",
+    )
+    print(result.p_yes, result.model, result.request_id)
+```
+
+To check generated text against an image, compose `WithImages` with the existing
+Mellea helpers. The image is explicit context; the candidate remains text:
+
+```python
+from mellea_jev import ImageInput, JevClient, JevVerifier, WithImages
+
+with JevClient(model="jev-1.14.0") as jev:
+    visual = WithImages(jev, {"scene": ImageInput.from_file("scene.png")})
+    verifier = JevVerifier(
+        visual,
+        "The candidate describes only objects visible in `images.scene`.",
+    )
+    verdict = verifier.evaluate("The photograph shows cars on a street.")
+    requirement = verifier.as_requirement()
+```
+
+`WithImages` also works with `JevClassifier` and `JevScorer`, including their
+`as_requirement()` methods. It copies the image mapping and uses the provider's
+existing lifetime. To attach a Mellea `ImageBlock`, explicitly convert it with
+`ImageInput.from_mellea(block)`. The adapter does not scan conversation history
+or fetch `ImageUrlBlock` URLs. TypeSafe and OpenAI providers implement the
+separate `ImageProvider` protocol; other providers remain text-only.
+
+Passing `images` explicitly opts that request into TypeSafe's experimental image
+API. The SDK creates multipart attachments; results retain the existing types,
+threshold policy, model, request ID, and usage. The `images` state key is reserved
+when attachments are supplied; a collision raises `ValueError`. SDK types stay
+internal, and images are uploaded to the explicitly configured provider endpoint.
+
+Prepare correctly oriented pixels before upload: PNG/JPEG, at most 16 MiB per
+image, each dimension 256–1568 pixels, and 78,400–2,458,624 pixels in total per
+image. The API also limits aggregate image bytes to 32 MiB. The adapter checks
+file signatures and the per-image byte limit; the API checks decoding, dimensions,
+and aggregate limits. It does not resize or apply EXIF rotation. See the
+[TypeSafe image contract](https://docs.typesafe.ai/images) for current limits.
+Bounding boxes and image-valued question criteria are outside this adapter's
+current image interface.
+
+From a checkout, send one potentially billable request with three questions
+(Noul, Choice, and Score):
+
+```bash
+make image-live-check IMAGE=/path/to/prepared-scene.png
+```
+
+This command explicitly uploads the selected file using `TYPESAFE_API_KEY`;
+`IMAGE_MODEL` defaults to `jev-1.14.0`. Ordinary tests and CI use mocks.
+The example is [`examples/live_image_check.py`](examples/live_image_check.py).
+
+`OpenAIProvider` accepts the same `images` argument and `WithImages` composition
+for Noul, Choice, and Score. It sends named base64 PNG/JPEG parts using the
+official Decisions SDK, while text-only calls keep their original JSON input:
+
+```python
+from mellea_jev import ImageInput, OpenAIProvider
+
+with OpenAIProvider() as provider:
+    result = provider.noul(
+        state={},
+        images={"scene": ImageInput.from_file("scene.png")},
+        question="Is a pedestrian crossing visible in `images.scene`?",
+    )
+```
+
+Image availability depends on the model and endpoint. Check a gateway's
+capabilities before uploading; unsupported requests raise an HTTP error and
+are not rerouted automatically. The [CoreInfra guide](docs/coreinfra.md) lists
+its supported image route.
+
 ### Jev through a Proxy
+
+For the CoreInfra Hub, the [connection guide](docs/coreinfra.md) covers both
+protocols, cross-model routing, supported images, and an opt-in compatibility
+matrix. The `coreinfra_provider` factory composes the existing SDK providers.
 
 Use your Proxy's key and explicitly select its TypeSafe-compatible API root. The SDK adds
 `/v1/systemone`; do not include that suffix in `base_url`.
@@ -688,12 +780,45 @@ checkpoint may download model weights. Prediction snapshots contain `p_yes`,
 provider, and returned model; keep them with the dataset version. The report
 also includes the SHA-256 of the exact dataset file, so a changed file cannot be
 silently paired with old predictions. A snapshot records the provider, returned
-model, and raw probability for each example:
+model, raw probability, and elapsed call time in milliseconds for each example.
+New snapshots use prediction format version 2; dataset format version remains 1:
 
 ```jsonl
-{"type":"prediction_set","format_version":1,"dataset":"support-policy","dataset_version":"1.0.0","dataset_sha256":"..."}
-{"type":"prediction","id":"in-policy","provider":"typesafe","model":"jev-1.13.0","p_yes":0.98}
+{"type":"prediction_set","format_version":2,"dataset":"support-policy","dataset_version":"1.0.0","dataset_sha256":"..."}
+{"type":"prediction","id":"in-policy","provider":"typesafe","model":"jev-1.13.0","p_yes":0.98,"elapsed_ms":304.2}
 ```
+
+The JSON report includes a separate `latency` section, grouped once by provider
+and returned model, regardless of how many threshold pairs you compare. Each row
+contains `measured_count`, `missing_count`, `min_ms`, `max_ms`, `mean_ms`,
+`stddev_ms`, `median_ms`, `p90_ms`, `p95_ms`, and `p99_ms`. Standard deviation
+describes the measured population. Percentiles use linear interpolation at
+position `(n - 1) * p` in sorted measurements; the method and units are also
+included in the report. With one measurement, every percentile equals that
+measurement and standard deviation is zero.
+
+Timing uses a monotonic high-resolution clock around each successful
+`JevVerifier.evaluate()` call. It includes request preparation, network round
+trip (for remote providers), inference, and response validation. It excludes
+provider construction, local-model loading, snapshot saving, and report
+generation. Calls run sequentially through one provider instance; the first
+call is included, so DNS, TLS, or other connection setup can affect it. No
+warm-up calls or repetitions are added. This measures the caller's response
+latency; it does not isolate server inference time. A failed evaluation stops
+the run under the existing error policy and does not contribute a success timing.
+
+Offline replay reproduces the same timing summary without another API call.
+Version 1 snapshots still load; their timing is unavailable. Missing timing
+(omitted `elapsed_ms` or `null` in version 2) is counted in `missing_count` and
+excluded from the distribution. All timing statistics are `null` if no
+measurements exist. Numeric durations must be finite and nonnegative. Older
+readers cannot read version 2 snapshots.
+
+Tail percentiles from a small dataset are descriptive: with 24 calls, p99 is
+close to the slowest observation. Publish the measurement count and use repeated
+runs under the same network conditions before drawing conclusions about p95,
+p99, or provider speed. Historical snapshots without timing cannot reconstruct
+per-call latency from a total runner duration.
 
 The report defines false-acceptance rate as false accepts divided by expected
 rejects, false-rejection rate as false rejects divided by expected accepts, and
@@ -708,7 +833,9 @@ private or sensitive examples or prediction snapshots.
 - Python **3.11 or newer**.
 - Mellea **0.7.x or 0.8.x** for the `Requirement` integration.
 - TypeSafe API access and `TYPESAFE_API_KEY` for live Jev requests. Mocked tests and `make demo` need no key.
-- The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
+- The TypeSafe provider uses the official TypeSafe Python SDK **>=0.7.5,<0.8.0**
+  and its synchronous HTTPX2 transport. Request compression is explicitly disabled
+  to preserve compatibility with existing gateways.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 - OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
   and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul, Choice, and Score;

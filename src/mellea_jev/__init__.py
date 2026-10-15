@@ -29,7 +29,9 @@ from .contracts import (
     ScoreProvider,
     ScoreResponse,
 )
+from .images import ImageInput, ImageProvider, WithImages
 from .providers import (
+    CoreInfraProtocol,
     LayaAgent,
     LayaProtocolError,
     LayaProvider,
@@ -47,6 +49,7 @@ from .providers import (
     SubQProvider,
     SubQProviderError,
     TypeSafeProvider,
+    coreinfra_provider,
 )
 from .results import UsageMetadata
 from .verifier import (
@@ -60,6 +63,11 @@ from .verifier import (
 )
 
 __all__ = [
+    "CoreInfraProtocol",
+    "coreinfra_provider",
+    "ImageInput",
+    "ImageProvider",
+    "WithImages",
     "ChoiceCriteria",
     "ChoiceDescription",
     "ChoiceQuestion",

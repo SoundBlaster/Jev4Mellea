@@ -70,6 +70,20 @@ TypeSafe wire models, while existing Jev callers keep `JevClient`. This meets
 the current portability milestone; it does not by itself establish a need for
 plugin discovery.
 
+## CoreInfra Hub compatibility
+
+- **Implemented; awaiting merge.** Compose existing TypeSafe/OpenAI providers
+  through `coreinfra_provider`, with explicit model/protocol selection and Hub
+  credentials. Use common PNG/JPEG image inputs for OpenAI Decisions and Mellea
+  Requirements. Keep exact operation URLs and provider-specific SDK types internal.
+- **Live smoke completed October 15, 2026.** Jev 1.14 (`jev-preview`) and Luna
+  Noul/Choice/Score worked through both Hub protocols, plus one Luna Decisions
+  image Noul. Record thirteen receipts and SDK/source provenance separately from
+  quality benchmarks. No live claim is made for other image routes or batching.
+- **Next — Per-route calibration.** Run a frozen labeled dataset with distinct
+  provider/protocol labels before reusing thresholds or comparing confidence.
+  Keep uploads opt-in and record actual returned model IDs.
+
 ## Deferred — Decision 3.0 on Apple Silicon
 
 - **Start condition:** a maintained, ready-to-run distribution of
@@ -120,6 +134,21 @@ plugin discovery.
 
 - Accept the structured Choice criteria forms supported by the TypeSafe API.
 - Allow callers to provide Noul criteria in addition to the current instruction.
+
+## Experimental image input
+
+- **Implemented; awaiting merge.** Add explicit `ImageInput` attachments to
+  TypeSafe Noul, Choice, Score, and mixed batches through SDK 0.7.5 multipart.
+  Preserve primitive results and compose existing Mellea helpers with
+  `WithImages`; convert Mellea `ImageBlock` explicitly, without scanning history
+  or fetching URLs. Keep live image uploads opt-in and ordinary CI offline.
+- **Next — Visual evaluation reference.** Define non-sensitive labeled image
+  examples and observable predicates before measuring semantic quality. Keep
+  edited or generated image provenance with the reference; a successful smoke
+  request is not an accuracy benchmark or a parking-law determination.
+- **Deferred — Box.** Introduce a separate bounding-box result contract only
+  for a concrete localization use case. Account for Jev 1.14 requirements and
+  use a separate presence predicate when an object may be absent.
 
 ## Completed observability foundations
 

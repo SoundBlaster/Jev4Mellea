@@ -670,8 +670,9 @@ make visual-evaluate EVAL_PREDICTIONS=/tmp/jev-visual.jsonl
 ```
 
 See the visual reference guide for Luna, Proxy configuration, and multi-provider
-comparison. These diagrams do not establish quality on real photographs or
-parking-law decisions.
+comparison. The [October 15 visual comparison](examples/evaluation/visual/live-comparison-2026-10-15.md)
+records 24 successful calls and their quality/latency metrics. These diagrams do
+not establish quality on real photographs or parking-law decisions.
 
 `examples/evaluate.py` reports false-acceptance, false-rejection, and uncertain
 rates for every provider, returned model, and threshold pair. The checked-in

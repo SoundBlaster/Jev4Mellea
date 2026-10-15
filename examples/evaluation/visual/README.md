@@ -79,8 +79,10 @@ before the first request; do not fall back to text-only inference if an asset is
 missing or invalid.
 
 The existing text evaluator intentionally rejects this format. Use the visual
-runner below for capture and replay. No live quality numbers have been collected
-for this dataset.
+runner below for capture and replay. The
+[October 15 live comparison](live-comparison-2026-10-15.md) records twelve calls
+each to direct Jev 1.14 and Luna through CoreInfra Decisions, including raw
+receipts, per-scene outputs, threshold sweeps, latency distributions, and limits.
 
 ## Check and regenerate
 

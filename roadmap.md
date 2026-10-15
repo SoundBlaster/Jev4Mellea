@@ -183,17 +183,21 @@ plugin discovery.
   pairs, geometry-derived labels, provenance, exact image hashes, and offline
   pixel/integrity checks. No model output is used as the scoring reference;
   these labels do not claim human adjudication or photographic accuracy.
-- **Implemented; awaiting merge — Visual runner and metrics.** Validate the
+- **Completed (PR #61) — Visual runner and metrics.** Validate the
   complete procedural bundle before uploads; send only the candidate,
   requirement/criteria, and each example's named images through existing
   TypeSafe/OpenAI providers. Preserve immutable capture receipts and replay
   complete captures with shared FAR/FRR/uncertainty and per-call latency metrics.
   Require explicit opt-in, a new receipt path, and a bounded request count.
-- **Next — Bounded live comparison.** Capture Jev and Luna on this frozen
-  reference, then compare quality and client-observed latency offline. Retain
-  actual model IDs and source/SDK provenance. These twelve correlated diagrams
-  do not establish photographic accuracy or parking-law compliance.
-- **Later — Photographic reference.** Collect representative, non-sensitive
+- **Completed October 15, 2026 — Bounded live comparison.** Capture twelve
+  scenes each on direct Jev 1.14 and Luna through CoreInfra Decisions (24 calls,
+  no errors or retries). Preserve raw receipts, source/SDK provenance, and
+  offline quality/latency results in the
+  [comparison report](examples/evaluation/visual/live-comparison-2026-10-15.md).
+  Jev abstained more at the default thresholds; Luna made one false acceptance.
+  These correlated diagrams do not establish photographic accuracy or a general
+  model ranking.
+- **Next — Photographic reference.** Collect representative, non-sensitive
   photographs with usage rights and human-reviewed observable predicates.
   Preserve editing provenance and distinguish spatial overlap from a legal
   parking determination. Measure that set separately from synthetic diagrams.

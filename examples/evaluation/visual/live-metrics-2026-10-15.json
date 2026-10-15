@@ -1,0 +1,127 @@
+{
+  "dataset": {
+    "name": "crosswalk-overlap-synthetic",
+    "version": "1.0.0",
+    "sha256": "14cc36787109356fc79bca813405b3680dcbb337a5c6946a574ef1f80934fbb0"
+  },
+  "sample_count": 12,
+  "rates": {
+    "false_acceptance": "false accepts / expected rejects",
+    "false_rejection": "false rejects / expected accepts",
+    "uncertain": "uncertain predictions / all examples"
+  },
+  "results": [
+    {
+      "provider": "coreinfra-decisions-luna",
+      "model": "gpt-6-luna",
+      "threshold": {
+        "reject_at": 0.1,
+        "accept_at": 0.9
+      },
+      "sample_count": 12,
+      "positive_count": 6,
+      "negative_count": 6,
+      "false_acceptance_count": 1,
+      "false_acceptance_rate": 0.16666666666666666,
+      "false_rejection_count": 0,
+      "false_rejection_rate": 0.0,
+      "uncertain_count": 1,
+      "uncertain_rate": 0.08333333333333333
+    },
+    {
+      "provider": "coreinfra-decisions-luna",
+      "model": "gpt-6-luna",
+      "threshold": {
+        "reject_at": 0.2,
+        "accept_at": 0.8
+      },
+      "sample_count": 12,
+      "positive_count": 6,
+      "negative_count": 6,
+      "false_acceptance_count": 1,
+      "false_acceptance_rate": 0.16666666666666666,
+      "false_rejection_count": 0,
+      "false_rejection_rate": 0.0,
+      "uncertain_count": 1,
+      "uncertain_rate": 0.08333333333333333
+    },
+    {
+      "provider": "typesafe-direct-jev",
+      "model": "jev-1.14.0",
+      "threshold": {
+        "reject_at": 0.1,
+        "accept_at": 0.9
+      },
+      "sample_count": 12,
+      "positive_count": 6,
+      "negative_count": 6,
+      "false_acceptance_count": 0,
+      "false_acceptance_rate": 0.0,
+      "false_rejection_count": 0,
+      "false_rejection_rate": 0.0,
+      "uncertain_count": 7,
+      "uncertain_rate": 0.5833333333333334
+    },
+    {
+      "provider": "typesafe-direct-jev",
+      "model": "jev-1.14.0",
+      "threshold": {
+        "reject_at": 0.2,
+        "accept_at": 0.8
+      },
+      "sample_count": 12,
+      "positive_count": 6,
+      "negative_count": 6,
+      "false_acceptance_count": 0,
+      "false_acceptance_rate": 0.0,
+      "false_rejection_count": 0,
+      "false_rejection_rate": 0.0,
+      "uncertain_count": 3,
+      "uncertain_rate": 0.25
+    }
+  ],
+  "latency": {
+    "unit": "ms",
+    "scope": "successful verifier.evaluate calls; includes transport and response validation, excludes provider setup and snapshot/report I/O",
+    "percentile_method": "linear interpolation at (n - 1) * p",
+    "stddev_method": "population",
+    "results": [
+      {
+        "provider": "coreinfra-decisions-luna",
+        "model": "gpt-6-luna",
+        "measured_count": 12,
+        "missing_count": 0,
+        "min_ms": 531.814166,
+        "mean_ms": 947.3902500833333,
+        "stddev_ms": 643.3318431603432,
+        "median_ms": 653.7436665,
+        "p90_ms": 1531.8168081000001,
+        "p95_ms": 2140.085889699999,
+        "p99_ms": 2703.027445140001,
+        "max_ms": 2843.762834
+      },
+      {
+        "provider": "typesafe-direct-jev",
+        "model": "jev-1.14.0",
+        "measured_count": 12,
+        "missing_count": 0,
+        "min_ms": 202.566917,
+        "mean_ms": 288.7478575833333,
+        "stddev_ms": 173.80423224763356,
+        "median_ms": 214.335375,
+        "p90_ms": 313.9012169,
+        "p95_ms": 554.8118669999997,
+        "p99_ms": 790.2299070000004,
+        "max_ms": 849.084417
+      }
+    ]
+  },
+  "mode": "offline",
+  "provider_requests": 0,
+  "visual_reference": {
+    "annotation_method": "rectangle-intersection",
+    "human_adjudicated": false,
+    "scope": "12 correlated synthetic diagrams; not photographs or parking-law labels.",
+    "assets_validated": true
+  }
+}

@@ -3,7 +3,7 @@
 import asyncio
 import base64
 import json
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 
 import httpx2
 import pytest
@@ -150,6 +150,34 @@ def test_text_call_after_image_call_keeps_the_original_json_string_input():
         provider.noul(state={}, question="Image?", images=IMAGES)
         provider.noul(state={"candidate": "Text only"}, question="Text?")
     assert len(calls) == 2
+
+
+def test_image_and_text_calls_normalize_the_same_mapping_and_sequence_values():
+    values = range(3)
+    mapping = MappingProxyType({"items": ("one", "two")})
+    state = {"values": values, "metadata": mapping}
+    observed = []
+
+    def handler(request):
+        payload = json.loads(request.content)
+        evidence = payload["input"]
+        if isinstance(evidence, list):
+            evidence = evidence[0]["content"][0]["text"]
+        observed.append(json.loads(evidence))
+        return httpx2.Response(200, json=wire())
+
+    with OpenAIProvider("test", transport=httpx2.MockTransport(handler)) as provider:
+        provider.noul(state=state, question="Valid?")
+        provider.noul(state=state, question="Valid?", images={"scene": ImageInput(PNG)})
+    assert observed == [
+        {"values": [0, 1, 2], "metadata": {"items": ["one", "two"]}},
+        {
+            "values": [0, 1, 2],
+            "metadata": {"items": ["one", "two"]},
+            "images": {"scene": "images.scene"},
+        },
+    ]
+    assert state["values"] is values and state["metadata"] is mapping
 
 
 @pytest.mark.parametrize("status", [302, 400, 429, 502])

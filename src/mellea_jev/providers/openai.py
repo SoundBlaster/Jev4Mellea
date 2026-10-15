@@ -39,14 +39,17 @@ def _decision_input(
     state: dict[str, Any], images: Mapping[str, ImageInput] | None
 ) -> str | list[DecisionInputMessageParam]:
     # Preserve the existing text serialization and reject non-JSON state first.
-    text = json.dumps(_json_value(state), ensure_ascii=False, allow_nan=False)
+    normalized_state = _json_value(state)
+    if not isinstance(normalized_state, dict):
+        raise TypeError("state must be a JSON-serializable dictionary.")
+    text = json.dumps(normalized_state, ensure_ascii=False, allow_nan=False)
     if images is None:
         return text
     attached = _normalize_images(images)
-    if "images" in state:
+    if "images" in normalized_state:
         raise ValueError("state['images'] is reserved when supplying image attachments.")
     text = json.dumps(
-        {**state, "images": {name: f"images.{name}" for name in attached}},
+        {**normalized_state, "images": {name: f"images.{name}" for name in attached}},
         ensure_ascii=False,
         allow_nan=False,
     )

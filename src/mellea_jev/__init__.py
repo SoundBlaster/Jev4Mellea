@@ -29,6 +29,7 @@ from .contracts import (
     ScoreProvider,
     ScoreResponse,
 )
+from .images import ImageInput, ImageProvider, WithImages
 from .providers import (
     LayaAgent,
     LayaProtocolError,
@@ -60,6 +61,9 @@ from .verifier import (
 )
 
 __all__ = [
+    "ImageInput",
+    "ImageProvider",
+    "WithImages",
     "ChoiceCriteria",
     "ChoiceDescription",
     "ChoiceQuestion",

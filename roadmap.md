@@ -121,6 +121,21 @@ plugin discovery.
 - Accept the structured Choice criteria forms supported by the TypeSafe API.
 - Allow callers to provide Noul criteria in addition to the current instruction.
 
+## Experimental image input
+
+- **Implemented; awaiting merge.** Add explicit `ImageInput` attachments to
+  TypeSafe Noul, Choice, Score, and mixed batches through SDK 0.7.5 multipart.
+  Preserve primitive results and compose existing Mellea helpers with
+  `WithImages`; convert Mellea `ImageBlock` explicitly, without scanning history
+  or fetching URLs. Keep live image uploads opt-in and ordinary CI offline.
+- **Next — Visual evaluation reference.** Define non-sensitive labeled image
+  examples and observable predicates before measuring semantic quality. Keep
+  edited or generated image provenance with the reference; a successful smoke
+  request is not an accuracy benchmark or a parking-law determination.
+- **Deferred — Box.** Introduce a separate bounding-box result contract only
+  for a concrete localization use case. Account for Jev 1.14 requirements and
+  use a separate presence predicate when an object may be absent.
+
 ## Completed observability foundations
 
 - **Usage metadata (PR #9):** expose available TypeSafe token counts without

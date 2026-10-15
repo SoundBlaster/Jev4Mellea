@@ -17,8 +17,9 @@ continues to manage generation and repair.
 - **Score text** on an ordered scale with TypeSafe Score.
 - **Ask several questions in one request** and inspect returned token usage.
 - **Connect checks to Mellea `Requirement`s** so they can participate in sampling.
+- **Check images with Jev** using explicit PNG/JPEG attachments (experimental).
 
-This is an unofficial, synchronous adapter. Jev evaluates text; it does not
+This is an unofficial, synchronous adapter. Jev evaluates supplied content; it does not
 generate or repair it.
 
 ## Quick start
@@ -58,6 +59,73 @@ are installed, `make demo` runs without a key or network access using a mocked
 Jev response.
 
 ## Examples
+
+### Check an image with Jev (experimental)
+
+Attach prepared PNG/JPEG bytes to Noul, Choice, Score, or a mixed `system_one`
+request. Refer to each named image as `images.<name>` in the question:
+
+```python
+from mellea_jev import ImageInput, JevClient
+
+image = ImageInput.from_file("scene.png")
+with JevClient(model="jev-1.14.0") as jev:
+    result = jev.noul(
+        state={},
+        images={"scene": image},
+        question="Is a pedestrian crossing visible in `images.scene`?",
+    )
+    print(result.p_yes, result.model, result.request_id)
+```
+
+To check generated text against an image, compose `WithImages` with the existing
+Mellea helpers. The image is explicit context; the candidate remains text:
+
+```python
+from mellea_jev import ImageInput, JevClient, JevVerifier, WithImages
+
+with JevClient(model="jev-1.14.0") as jev:
+    visual = WithImages(jev, {"scene": ImageInput.from_file("scene.png")})
+    verifier = JevVerifier(
+        visual,
+        "The candidate describes only objects visible in `images.scene`.",
+    )
+    verdict = verifier.evaluate("The photograph shows cars on a street.")
+    requirement = verifier.as_requirement()
+```
+
+`WithImages` also works with `JevClassifier` and `JevScorer`, including their
+`as_requirement()` methods. It copies the image mapping and uses the provider's
+existing lifetime. To attach a Mellea `ImageBlock`, explicitly convert it with
+`ImageInput.from_mellea(block)`. The adapter does not scan conversation history
+or fetch `ImageUrlBlock` URLs. Other providers remain text-only unless they
+implement the separate `ImageProvider` protocol.
+
+Passing `images` explicitly opts that request into TypeSafe's experimental image
+API. The SDK creates multipart attachments; results retain the existing types,
+threshold policy, model, request ID, and usage. The `images` state key is reserved
+when attachments are supplied; a collision raises `ValueError`. SDK types stay
+internal, and images are uploaded to the explicitly configured provider endpoint.
+
+Prepare correctly oriented pixels before upload: PNG/JPEG, at most 16 MiB per
+image, each dimension 256–1568 pixels, and 78,400–2,458,624 pixels in total per
+image. The API also limits aggregate image bytes to 32 MiB. The adapter checks
+file signatures and the per-image byte limit; the API checks decoding, dimensions,
+and aggregate limits. It does not resize or apply EXIF rotation. See the
+[TypeSafe image contract](https://docs.typesafe.ai/images) for current limits.
+Bounding boxes and image-valued question criteria are outside this adapter's
+current image interface.
+
+From a checkout, send one potentially billable request with three questions
+(Noul, Choice, and Score):
+
+```bash
+make image-live-check IMAGE=/path/to/prepared-scene.png
+```
+
+This command explicitly uploads the selected file using `TYPESAFE_API_KEY`;
+`IMAGE_MODEL` defaults to `jev-1.14.0`. Ordinary tests and CI use mocks.
+The example is [`examples/live_image_check.py`](examples/live_image_check.py).
 
 ### Jev through a Proxy
 
@@ -701,7 +769,9 @@ private or sensitive examples or prediction snapshots.
 - Python **3.11 or newer**.
 - Mellea **0.7.x or 0.8.x** for the `Requirement` integration.
 - TypeSafe API access and `TYPESAFE_API_KEY` for live Jev requests. Mocked tests and `make demo` need no key.
-- The TypeSafe provider uses the official TypeSafe Python SDK and its synchronous HTTPX2 transport.
+- The TypeSafe provider uses the official TypeSafe Python SDK **>=0.7.5,<0.8.0**
+  and its synchronous HTTPX2 transport. Request compression is explicitly disabled
+  to preserve compatibility with existing gateways.
 - `laya-mlx` is optional and supported by its upstream project on Apple Silicon macOS.
 - OpenAI verification requires the optional `openai` extra (SDK **3.26.0 or newer, below 4**)
   and `OPENAI_API_KEY`. `OpenAIProvider` supports Noul, Choice, and Score;

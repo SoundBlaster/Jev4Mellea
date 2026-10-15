@@ -1,5 +1,27 @@
 # Отчёт о проверке — 17 сентября 2026 года
 
+## Image input — 15 октября 2026 года
+
+Среда: macOS, Python 3.13.15, официальный TypeSafe SDK 0.7.5.
+
+- `make check` с Mellea 0.8.0 и отдельно с Mellea 0.7.0 — в каждом окружении
+  **594 passed, 6 skipped**, branch coverage **87,10%**; Ruff, formatter и strict
+  Mypy прошли. Live-тесты и локальный Ollama пропущены по opt-in guards.
+- Проверены явные PNG/JPEG attachments, SDK multipart, mixed Noul/Choice/Score,
+  auth, точный endpoint, метаданные, отсутствие retries/redirects, безопасные
+  ошибки и переход от image-запроса к обычному JSON без image opt-in header.
+- Настоящие Mellea `ImageBlock` и `Requirement.validate` проверены с mock HTTP
+  для verifier/classifier/scorer на обеих поддерживаемых версиях Mellea.
+- Отдельно выполнен **один live batch** через интегрированный `JevClient` с
+  обезличенной фотографией на `jev-1.14.0`: три Noul, один Choice, один Score.
+  Все ответы прошли строгую проверку; получены model, request ID и token usage
+  (4572 input / 111 output, общие для запроса). Фотография и подробный ответ
+  сохранены только локально.
+
+Этот прогон подтверждает работоспособность image transport на одном изображении.
+Точность модели, правила парковки, Box и другие image-провайдеры им не проверены.
+Исторические результаты ниже относятся к указанным датам и версиям пакета.
+
 ## Фактически выполнено
 
 Среда сборки: Python 3.13.5, Linux, HTTPX 0.28.1,

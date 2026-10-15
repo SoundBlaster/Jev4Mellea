@@ -109,3 +109,20 @@ def test_subq_smoke_requires_key_and_runs_one_provider_check(make_command):
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout) == ["examples/live_check.py", "--provider", "subq"]
     assert "mock-subq-key" not in result.stdout + result.stderr
+
+
+def test_image_smoke_requires_explicit_file_and_passes_quoted_path(make_command):
+    result = make_command("image-live-check", TYPESAFE_API_KEY="mock-image-key", IMAGE="")
+    assert result.returncode != 0 and "Set IMAGE" in result.stderr
+    path = "/tmp/photo with 'quotes' and spaces.png"
+    result = make_command(
+        "image-live-check", TYPESAFE_API_KEY="mock-image-key", IMAGE=path, IMAGE_MODEL="jev-1.14.0"
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == [
+        "examples/live_image_check.py",
+        path,
+        "--model",
+        "jev-1.14.0",
+    ]
+    assert "mock-image-key" not in result.stdout + result.stderr

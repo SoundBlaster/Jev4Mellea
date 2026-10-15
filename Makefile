@@ -19,9 +19,12 @@ PROXY_MODEL ?=
 PROXY_BASE_URL ?=
 PROXY_ENDPOINT_URL ?=
 export PROXY_PROVIDER PROXY_MODEL PROXY_BASE_URL PROXY_ENDPOINT_URL
+IMAGE ?=
+IMAGE_MODEL ?= jev-1.14.0
+export IMAGE IMAGE_MODEL
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -37,6 +40,7 @@ help: ## Show the available development commands
 	  'ollama-test      Run the local Ollama repair test; Jev HTTP is mocked' \
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
+	  'image-live-check Upload IMAGE for one experimental Jev image request (billable)' \
 	  'subq-live-check  Run one potentially billable Noul check against SubQ Decisions' \
 	  'proxy-live-check Run one billable check through a TypeSafe or OpenAI Proxy (base or exact URL)' \
 	  'openai-live-test Run three opt-in Decisions smoke tests (Noul, Choice, Score; billable)' \
@@ -75,7 +79,7 @@ test: $(INSTALL_STAMP) ## Run tests and enforce the configured branch-coverage t
 check: quality test diff-check ## Run the same quality gate used by GitHub Actions
 
 test-integration: $(INSTALL_STAMP) ## Exercise real Mellea Requirement.validate with mocked providers
-	$(PY) -m pytest -q tests/test_mellea_integration.py
+	$(PY) -m pytest -q tests/test_mellea_integration.py tests/test_mellea_images.py
 
 ollama-test: $(INSTALL_STAMP) ## Exercise real local generation; Jev HTTP is mocked and no API key is used
 	@test -n '$(OLLAMA_MODEL)' || { echo 'Set OLLAMA_MODEL to a model already installed in Ollama.' >&2; exit 2; }
@@ -99,6 +103,11 @@ proxy-live-check: $(INSTALL_STAMP) ## Run one potentially billable check through
 live-check: $(INSTALL_STAMP) ## Run one live Jev check using the sample input; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	$(PY) examples/live_check.py
+
+image-live-check: $(INSTALL_STAMP) ## Upload one prepared image for three judgments in one request
+	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
+	@test -n "$$IMAGE" || { echo 'Set IMAGE to a prepared PNG/JPEG file.' >&2; exit 2; }
+	$(PY) examples/live_image_check.py "$$IMAGE" --model "$$IMAGE_MODEL"
 
 subq-live-check: $(INSTALL_STAMP) ## Run one potentially billable SubQ Noul check
 	@test -n "$${SUBQ_API_KEY:-}" || { echo 'Set SUBQ_API_KEY first.' >&2; exit 2; }

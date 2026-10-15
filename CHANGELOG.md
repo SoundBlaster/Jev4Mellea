@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a versioned synthetic visual reference: twelve crosswalk diagrams,
+  balanced geometry-derived labels, paired cases, provenance, and image hashes.
+- Add the offline `make visual-reference` integrity check and mutation tests;
+  keep the visual format separate from the text evaluation runner. No live
+  benchmark or photographic accuracy claim is included.
+
 - Measure each successful evaluation call and persist `elapsed_ms` in version 2
   prediction snapshots. Report count, missing count, mean, median, population
   standard deviation, min/max, and p90/p95/p99 by provider and returned model.

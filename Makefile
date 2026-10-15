@@ -28,7 +28,7 @@ COREINFRA_REPORT ?=
 export COREINFRA_JEV_MODEL COREINFRA_IMAGE COREINFRA_REPORT
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate visual-reference diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -52,6 +52,7 @@ help: ## Show the available development commands
 	  'mellea-ollama    Run the Mellea + local Ollama example with live Jev checks' \
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
 	  'live-evaluate    Explicitly run the labeled dataset through a model' \
+	  'visual-reference Validate the synthetic visual reference offline (stdlib only)' \
 	  'diff-check       Check staged and unstaged changes for whitespace errors' \
 	  'committed-diff-check Check HEAD against its first parent for whitespace errors' \
 	  'clean            Remove the virtualenv and generated Python/test build files'
@@ -145,6 +146,9 @@ live-evaluate: $(INSTALL_STAMP) ## Explicitly evaluate labeled examples; may sen
 	if [ -n "$${EVAL_API_KEY_ENV:-}" ]; then set -- "$$@" --api-key-env "$$EVAL_API_KEY_ENV"; fi; \
 	if [ -n "$${EVAL_PROVIDER_LABEL:-}" ]; then set -- "$$@" --provider-label "$$EVAL_PROVIDER_LABEL"; fi; \
 	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --live --provider '$(EVAL_PROVIDER)' $(if $(EVAL_MODEL),--model '$(EVAL_MODEL)',) --threshold '$(EVAL_THRESHOLD)' $(if $(EVAL_PREDICTIONS),--save-predictions '$(EVAL_PREDICTIONS)',) "$$@"
+
+visual-reference: ## Verify scene pixels, labels, and image hashes; never call a provider
+	$(PYTHON) examples/visual_reference.py --check
 
 diff-check: ## Check staged and unstaged changes for whitespace errors
 	git diff --check HEAD

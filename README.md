@@ -654,6 +654,13 @@ and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/
 
 ### Evaluate a provider on labeled examples
 
+For image work, the [synthetic crosswalk reference](examples/evaluation/visual/README.md)
+provides twelve labeled PNG scenes with geometry-derived positive/negative
+cases and asset hashes. Run `make visual-reference` to check the bundle offline.
+Its visual format is separate from the text evaluator below; visual inference
+and metric collection are the next step. The diagrams do not establish quality
+on real photographs or parking-law decisions.
+
 `examples/evaluate.py` reports false-acceptance, false-rejection, and uncertain
 rates for every provider, returned model, and threshold pair. The checked-in
 museum example is a small format demonstration, not a quality benchmark. Add

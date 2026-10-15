@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a bounded opt-in visual evaluation runner for the synthetic reference,
+  using Jev/TypeSafe or Luna/OpenAI providers and explicit Proxy connections.
+  Save complete or partial image captures without overwriting prior receipts;
+  replay complete captures offline with shared FAR/FRR/uncertainty and latency
+  reports. Validate all labels, pixels, and hashes before inference.
+
 - Add a versioned synthetic visual reference: twelve crosswalk diagrams,
   balanced geometry-derived labels, paired cases, provenance, and image hashes.
 - Add the offline `make visual-reference` integrity check and mutation tests;

@@ -178,16 +178,21 @@ plugin discovery.
 
 ## Visual evaluation
 
-- **Implemented; awaiting merge — Synthetic reference.** Twelve procedural
+- **Completed (PR #56) — Synthetic reference.** Twelve procedural
   crosswalk diagrams with six expected accepts and six rejects, controlled
   pairs, geometry-derived labels, provenance, exact image hashes, and offline
   pixel/integrity checks. No model output is used as the scoring reference;
   these labels do not claim human adjudication or photographic accuracy.
-- **Next — Visual runner and metrics.** Load only each example's candidate and
-  named image bytes into the image-capable provider; verify every asset before
-  inference. Keep labels and annotation evidence out of model context, bind
-  saved predictions to the full reference digest, and reuse FAR/FRR/uncertainty
-  definitions. Live requests remain explicit opt-in with a bounded call count.
+- **Implemented; awaiting merge — Visual runner and metrics.** Validate the
+  complete procedural bundle before uploads; send only the candidate,
+  requirement/criteria, and each example's named images through existing
+  TypeSafe/OpenAI providers. Preserve immutable capture receipts and replay
+  complete captures with shared FAR/FRR/uncertainty and per-call latency metrics.
+  Require explicit opt-in, a new receipt path, and a bounded request count.
+- **Next — Bounded live comparison.** Capture Jev and Luna on this frozen
+  reference, then compare quality and client-observed latency offline. Retain
+  actual model IDs and source/SDK provenance. These twelve correlated diagrams
+  do not establish photographic accuracy or parking-law compliance.
 - **Later — Photographic reference.** Collect representative, non-sensitive
   photographs with usage rights and human-reviewed observable predicates.
   Preserve editing provenance and distinguish spatial overlap from a legal

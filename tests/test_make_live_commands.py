@@ -126,3 +126,28 @@ def test_image_smoke_requires_explicit_file_and_passes_quoted_path(make_command)
         "jev-1.14.0",
     ]
     assert "mock-image-key" not in result.stdout + result.stderr
+
+
+def test_coreinfra_matrix_requires_key_and_forwards_explicit_options(make_command):
+    result = make_command("coreinfra-live-check", COREINFRA_API_KEY="")
+    assert result.returncode != 0 and "COREINFRA_API_KEY" in result.stderr
+    path = "/tmp/prepared image 'one'.png"
+    result = make_command(
+        "coreinfra-live-check",
+        COREINFRA_API_KEY="mock-hub-key",
+        COREINFRA_IMAGE=path,
+        COREINFRA_JEV_MODEL="jev-preview",
+        COREINFRA_REPORT="/tmp/capture one.json",
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == [
+        "examples/coreinfra_check.py",
+        "--live",
+        "--jev-model",
+        "jev-preview",
+        "--image",
+        path,
+        "--report",
+        "/tmp/capture one.json",
+    ]
+    assert "mock-hub-key" not in result.stdout + result.stderr

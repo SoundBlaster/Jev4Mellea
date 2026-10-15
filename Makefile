@@ -22,9 +22,13 @@ export PROXY_PROVIDER PROXY_MODEL PROXY_BASE_URL PROXY_ENDPOINT_URL
 IMAGE ?=
 IMAGE_MODEL ?= jev-1.14.0
 export IMAGE IMAGE_MODEL
+COREINFRA_JEV_MODEL ?= jev-latest
+COREINFRA_IMAGE ?=
+COREINFRA_REPORT ?=
+export COREINFRA_JEV_MODEL COREINFRA_IMAGE COREINFRA_REPORT
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -41,6 +45,7 @@ help: ## Show the available development commands
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
 	  'image-live-check Upload IMAGE for one experimental Jev image request (billable)' \
+	  'coreinfra-live-check Run 12 Hub text checks (+1 if COREINFRA_IMAGE is set; billable)' \
 	  'subq-live-check  Run one potentially billable Noul check against SubQ Decisions' \
 	  'proxy-live-check Run one billable check through a TypeSafe or OpenAI Proxy (base or exact URL)' \
 	  'openai-live-test Run three opt-in Decisions smoke tests (Noul, Choice, Score; billable)' \
@@ -108,6 +113,13 @@ image-live-check: $(INSTALL_STAMP) ## Upload one prepared image for three judgme
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	@test -n "$$IMAGE" || { echo 'Set IMAGE to a prepared PNG/JPEG file.' >&2; exit 2; }
 	$(PY) examples/live_image_check.py "$$IMAGE" --model "$$IMAGE_MODEL"
+
+coreinfra-live-check: $(INSTALL_STAMP) ## Opt into the bounded Hub protocol/model matrix
+	@test -n "$${COREINFRA_API_KEY:-}" || { echo 'Set COREINFRA_API_KEY first.' >&2; exit 2; }
+	@set -- --live --jev-model "$$COREINFRA_JEV_MODEL"; \
+	if [ -n "$$COREINFRA_IMAGE" ]; then set -- "$$@" --image "$$COREINFRA_IMAGE"; fi; \
+	if [ -n "$$COREINFRA_REPORT" ]; then set -- "$$@" --report "$$COREINFRA_REPORT"; fi; \
+	$(PY) examples/coreinfra_check.py "$$@"
 
 subq-live-check: $(INSTALL_STAMP) ## Run one potentially billable SubQ Noul check
 	@test -n "$${SUBQ_API_KEY:-}" || { echo 'Set SUBQ_API_KEY first.' >&2; exit 2; }

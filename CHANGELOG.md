@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.7.0 — 2026-10-15
+
 - Add a bounded opt-in visual evaluation runner for the synthetic reference,
   using Jev/TypeSafe or Luna/OpenAI providers and explicit Proxy connections.
   Save complete or partial image captures without overwriting prior receipts;
@@ -11,8 +13,10 @@
 - Add a versioned synthetic visual reference: twelve crosswalk diagrams,
   balanced geometry-derived labels, paired cases, provenance, and image hashes.
 - Add the offline `make visual-reference` integrity check and mutation tests;
-  keep the visual format separate from the text evaluation runner. No live
-  benchmark or photographic accuracy claim is included.
+  keep the visual format separate from the text evaluation runner.
+- Record a bounded 24-call synthetic visual comparison of direct Jev 1.14 and
+  Luna through CoreInfra Decisions, with raw receipts and offline quality/latency
+  reports. This does not establish photographic accuracy or model superiority.
 
 - Measure each successful evaluation call and persist `elapsed_ms` in version 2
   prediction snapshots. Report count, missing count, mean, median, population

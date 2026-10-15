@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add explicit PNG/JPEG image inputs to OpenAI Decisions Noul, Choice, and
+  Score, reusing `ImageInput` and `WithImages` for Mellea Requirements. Send
+  named base64 image parts through the official SDK; preserve text payloads.
+
 - Add `coreinfra_provider` as an explicit connection factory over the existing
   TypeSafe and OpenAI SDK providers. Select protocol and model independently,
   use the documented Hub operation URLs, and read only `COREINFRA_API_KEY`.

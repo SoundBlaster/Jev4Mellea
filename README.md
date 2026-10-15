@@ -149,6 +149,10 @@ its supported image route.
 
 ### Jev through a Proxy
 
+For the CoreInfra Hub, the [connection guide](docs/coreinfra.md) covers both
+protocols, cross-model routing, supported images, and an opt-in compatibility
+matrix. The `coreinfra_provider` factory composes the existing SDK providers.
+
 Use your Proxy's key and explicitly select its TypeSafe-compatible API root. The SDK adds
 `/v1/systemone`; do not include that suffix in `base_url`.
 

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add an opt-in CoreInfra primitive matrix and record one successful bounded
+  live check of Jev 1.14/Luna through both protocols plus Luna image Noul.
+  Preserve partial receipts on errors; ordinary CI remains offline.
+
 - Add explicit PNG/JPEG image inputs to OpenAI Decisions Noul, Choice, and
   Score, reusing `ImageInput` and `WithImages` for Mellea Requirements. Send
   named base64 image parts through the official SDK; preserve text payloads.

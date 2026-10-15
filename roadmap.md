@@ -147,6 +147,23 @@ plugin discovery.
   with Mellea 0.7.0 and 0.8.0 (expanded in PR #29). Other minor versions are
   not currently declared compatible.
 
+## Visual evaluation
+
+- **Implemented; awaiting merge — Synthetic reference.** Twelve procedural
+  crosswalk diagrams with six expected accepts and six rejects, controlled
+  pairs, geometry-derived labels, provenance, exact image hashes, and offline
+  pixel/integrity checks. No model output is used as the scoring reference;
+  these labels do not claim human adjudication or photographic accuracy.
+- **Next — Visual runner and metrics.** Load only each example's candidate and
+  named image bytes into the image-capable provider; verify every asset before
+  inference. Keep labels and annotation evidence out of model context, bind
+  saved predictions to the full reference digest, and reuse FAR/FRR/uncertainty
+  definitions. Live requests remain explicit opt-in with a bounded call count.
+- **Later — Photographic reference.** Collect representative, non-sensitive
+  photographs with usage rights and human-reviewed observable predicates.
+  Preserve editing provenance and distinguish spatial overlap from a legal
+  parking determination. Measure that set separately from synthetic diagrams.
+
 ## Before production use
 
 - Decide whether an async client and a Mellea integration point that can await

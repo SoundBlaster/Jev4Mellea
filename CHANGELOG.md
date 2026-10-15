@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a versioned synthetic visual reference: twelve crosswalk diagrams,
+  balanced geometry-derived labels, paired cases, provenance, and image hashes.
+- Add the offline `make visual-reference` integrity check and mutation tests;
+  keep the visual format separate from the text evaluation runner. No live
+  benchmark or photographic accuracy claim is included.
+
 ## 0.6.0 — 2026-10-14
 
 - Add `SubQProvider` for SubQ Decisions Noul, Choice, and Score with strict

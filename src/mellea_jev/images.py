@@ -7,7 +7,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from os import PathLike
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from .contracts import (
     ChoiceCriteria,
@@ -44,6 +44,11 @@ class ImageInput:
             raise ValueError("ImageInput must contain between 1 byte and 16 MiB.")
         if not self.data.startswith((PNG_SIGNATURE, JPEG_SIGNATURE)):
             raise ValueError("ImageInput requires PNG or JPEG file bytes.")
+
+    @property
+    def media_type(self) -> Literal["image/png", "image/jpeg"]:
+        """MIME type inferred from the validated file signature."""
+        return "image/png" if self.data.startswith(PNG_SIGNATURE) else "image/jpeg"
 
     @classmethod
     def from_file(cls, path: str | PathLike[str]) -> ImageInput:

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import math
 import os
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 import httpx2
@@ -18,17 +19,48 @@ from ..criteria import (
     normalize_score_criteria,
     probability,
 )
+from ..images import ImageInput, _normalize_images
 from ..results import ChoiceResult, NoulResult, ScoreResult, UsageMetadata
 from ._http import _DefaultBaseURL, _http_client
 
 if TYPE_CHECKING:
     from openai.types.decision import Answer
     from openai.types.decision_create_params import Question, QuestionQuestionParamChoiceChoice
+    from openai.types.decision_input_message_param import DecisionInputMessageParam
+    from openai.types.decision_input_part_union_param import DecisionInputPartUnionParam
 
 BASE_URL = "https://api.openai.com/v1"
 QUESTION_NAME = "requirement"
 CHOICE_QUESTION_NAME = "classification"
 SCORE_QUESTION_NAME = "rating"
+
+
+def _decision_input(
+    state: dict[str, Any], images: Mapping[str, ImageInput] | None
+) -> str | list[DecisionInputMessageParam]:
+    # Preserve the existing text serialization and reject non-JSON state first.
+    normalized_state = _json_value(state)
+    if not isinstance(normalized_state, dict):
+        raise TypeError("state must be a JSON-serializable dictionary.")
+    text = json.dumps(normalized_state, ensure_ascii=False, allow_nan=False)
+    if images is None:
+        return text
+    attached = _normalize_images(images)
+    if "images" in normalized_state:
+        raise ValueError("state['images'] is reserved when supplying image attachments.")
+    text = json.dumps(
+        {**normalized_state, "images": {name: f"images.{name}" for name in attached}},
+        ensure_ascii=False,
+        allow_nan=False,
+    )
+    parts: list[DecisionInputPartUnionParam] = [{"type": "input_text", "text": text}]
+    for name, image in attached.items():
+        parts.append({"type": "input_text", "text": f"Image reference: `images.{name}`"})
+        encoded = base64.b64encode(image.data).decode("ascii")
+        parts.append(
+            {"type": "input_image", "image_url": f"data:{image.media_type};base64,{encoded}"}
+        )
+    return [{"role": "user", "content": parts}]
 
 
 class OpenAIProviderError(RuntimeError):
@@ -57,7 +89,9 @@ class OpenAIProvider:
     criteria are appended to the predicate instructions as JSON. Choice labels
     remain strings; structured descriptions are serialized as JSON text.
     Score descriptions become ordered level labels with zero-based indices.
-    Image input and batching are outside the current interface.
+    Optional explicit images become named base64 PNG/JPEG input parts; no URL
+    fetching, history scanning, or image resizing is performed. Batching is
+    outside the current interface. Image capability depends on the model/route.
 
     The official endpoint is the default. ``base_url`` explicitly selects a
     compatible gateway root before ``/decisions``. ``endpoint_url`` instead
@@ -119,6 +153,7 @@ class OpenAIProvider:
         state: dict[str, Any],
         question: str,
         criteria: NoulCriteria | None = None,
+        images: Mapping[str, ImageInput] | None = None,
     ) -> NoulResult:
         """Return a predicate's P(true); refusals and invalid responses raise."""
         if not isinstance(question, str) or not question.strip():
@@ -133,6 +168,7 @@ class OpenAIProvider:
         answer, model, request_id, usage = self._request(
             state=state,
             question={"type": "predicate", "name": QUESTION_NAME, "instructions": instructions},
+            images=images,
         )
         if answer.type != "predicate":
             raise OpenAIProtocolError("Expected a predicate answer.")
@@ -149,6 +185,7 @@ class OpenAIProvider:
         state: dict[str, Any],
         question: str,
         criteria: ChoiceCriteria,
+        images: Mapping[str, ImageInput] | None = None,
     ) -> ChoiceResult:
         """Classify into the caller's string labels; reject incomplete distributions."""
         normalized = normalize_choice_criteria(criteria)
@@ -172,6 +209,7 @@ class OpenAIProvider:
                 "instructions": question,
                 "choices": choices,
             },
+            images=images,
         )
         if answer.type != "choice":
             raise OpenAIProtocolError("Expected a choice answer.")
@@ -197,6 +235,7 @@ class OpenAIProvider:
         state: dict[str, Any],
         question: str,
         criteria: Sequence[str],
+        images: Mapping[str, ImageInput] | None = None,
     ) -> ScoreResult:
         """Return a probability-weighted position on the caller's ordered rubric."""
         normalized = normalize_score_criteria(criteria)
@@ -208,6 +247,7 @@ class OpenAIProvider:
                 "instructions": question,
                 "levels": [{"label": description} for description in normalized],
             },
+            images=images,
         )
         if answer.type != "score":
             raise OpenAIProtocolError("Expected a score answer.")
@@ -237,7 +277,11 @@ class OpenAIProvider:
             ) from None
 
     def _request(
-        self, *, state: dict[str, Any], question: Question
+        self,
+        *,
+        state: dict[str, Any],
+        question: Question,
+        images: Mapping[str, ImageInput] | None = None,
     ) -> tuple[Answer, str, str | None, UsageMetadata]:
         from openai import APIConnectionError, APIStatusError, OpenAIError
         from openai.types.decision import Decision
@@ -246,11 +290,11 @@ class OpenAIProvider:
             raise TypeError("state must be a JSON-serializable dictionary.")
         if not isinstance(question["instructions"], str) or not question["instructions"].strip():
             raise ValueError("question must be nonempty text.")
-        input_text = json.dumps(_json_value(state), ensure_ascii=False, allow_nan=False)
+        request_input = _decision_input(state, images)
         try:
             raw = self._client.decisions.with_raw_response.create(
                 model=self.model,
-                input=input_text,
+                input=request_input,
                 questions=[question],
             )
         except APIStatusError as exc:

@@ -39,3 +39,26 @@ protocol. Inspect the returned model metadata and evaluate thresholds per route.
 
 For another gateway or a custom operation URL, construct `TypeSafeProvider` or
 `OpenAIProvider` directly with their existing URL arguments.
+
+## Images
+
+The Hub currently documents base64 image support only for `gpt-6-luna` through
+the `decisions` route. Jev through Decisions and all System One routes are
+documented as text-only. The factory keeps model/protocol selection explicit.
+
+```python
+from mellea_jev import ImageInput, coreinfra_provider
+
+with coreinfra_provider(model="gpt-6-luna", protocol="decisions") as provider:
+    result = provider.noul(
+        state={},
+        images={"scene": ImageInput.from_file("scene.png")},
+        question="Is a pedestrian crossing visible in `images.scene`?",
+    )
+```
+
+This explicitly uploads the selected image to the Hub. `WithImages` can bind
+the same input to the existing Mellea verifier, classifier, or scorer. Inputs
+must be prepared PNG/JPEG bytes; URL fetching, resizing, EXIF rotation, and
+automatic route fallback are outside these helpers. Image support in direct
+TypeSafe Jev does not establish image support through a gateway.

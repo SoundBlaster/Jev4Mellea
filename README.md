@@ -98,8 +98,8 @@ with JevClient(model="jev-1.14.0") as jev:
 `as_requirement()` methods. It copies the image mapping and uses the provider's
 existing lifetime. To attach a Mellea `ImageBlock`, explicitly convert it with
 `ImageInput.from_mellea(block)`. The adapter does not scan conversation history
-or fetch `ImageUrlBlock` URLs. Other providers remain text-only unless they
-implement the separate `ImageProvider` protocol.
+or fetch `ImageUrlBlock` URLs. TypeSafe and OpenAI providers implement the
+separate `ImageProvider` protocol; other providers remain text-only.
 
 Passing `images` explicitly opts that request into TypeSafe's experimental image
 API. The SDK creates multipart attachments; results retain the existing types,
@@ -126,6 +126,26 @@ make image-live-check IMAGE=/path/to/prepared-scene.png
 This command explicitly uploads the selected file using `TYPESAFE_API_KEY`;
 `IMAGE_MODEL` defaults to `jev-1.14.0`. Ordinary tests and CI use mocks.
 The example is [`examples/live_image_check.py`](examples/live_image_check.py).
+
+`OpenAIProvider` accepts the same `images` argument and `WithImages` composition
+for Noul, Choice, and Score. It sends named base64 PNG/JPEG parts using the
+official Decisions SDK, while text-only calls keep their original JSON input:
+
+```python
+from mellea_jev import ImageInput, OpenAIProvider
+
+with OpenAIProvider() as provider:
+    result = provider.noul(
+        state={},
+        images={"scene": ImageInput.from_file("scene.png")},
+        question="Is a pedestrian crossing visible in `images.scene`?",
+    )
+```
+
+Image availability depends on the model and endpoint. Check a gateway's
+capabilities before uploading; unsupported requests raise an HTTP error and
+are not rerouted automatically. The [CoreInfra guide](docs/coreinfra.md) lists
+its supported image route.
 
 ### Jev through a Proxy
 

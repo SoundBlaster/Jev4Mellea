@@ -79,7 +79,7 @@ test: $(INSTALL_STAMP) ## Run tests and enforce the configured branch-coverage t
 check: quality test diff-check ## Run the same quality gate used by GitHub Actions
 
 test-integration: $(INSTALL_STAMP) ## Exercise real Mellea Requirement.validate with mocked providers
-	$(PY) -m pytest -q tests/test_mellea_integration.py tests/test_mellea_images.py
+	$(PY) -m pytest -q tests/test_mellea_integration.py tests/test_mellea_images.py tests/test_openai_images.py
 
 ollama-test: $(INSTALL_STAMP) ## Exercise real local generation; Jev HTTP is mocked and no API key is used
 	@test -n '$(OLLAMA_MODEL)' || { echo 'Set OLLAMA_MODEL to a model already installed in Ollama.' >&2; exit 2; }

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Add `coreinfra_provider` as an explicit connection factory over the existing
+  TypeSafe and OpenAI SDK providers. Select protocol and model independently,
+  use the documented Hub operation URLs, and read only `COREINFRA_API_KEY`.
+
 - Add experimental TypeSafe image attachments to Noul, Choice, Score, and mixed
   `system_one` requests. Keep typed results and existing Mellea contracts.
 - Add `ImageInput` for local PNG/JPEG bytes and explicit Mellea `ImageBlock`

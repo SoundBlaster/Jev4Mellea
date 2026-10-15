@@ -10,12 +10,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import sys
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from statistics import mean, pstdev
+from time import perf_counter_ns
 from typing import Literal
 
 from mellea_jev.contracts import NoulCriteria, NoulProvider
@@ -23,6 +26,7 @@ from mellea_jev.criteria import normalize_noul_criteria, probability
 from mellea_jev.verifier import JevVerifier
 
 FORMAT_VERSION = 1
+PREDICTION_FORMAT_VERSION = 2
 DEFAULT_THRESHOLD = (0.10, 0.90)  # reject_at, accept_at
 ExpectedOutcome = Literal["accept", "reject"]
 
@@ -69,6 +73,7 @@ class Prediction:
     provider: str
     model: str
     p_yes: float
+    elapsed_ms: float | None = None
 
     def __post_init__(self) -> None:
         for field in ("example_id", "provider", "model"):
@@ -76,6 +81,69 @@ class Prediction:
             if not isinstance(value, str) or not value.strip():
                 raise ValueError(f"{field} must be nonempty text.")
         object.__setattr__(self, "p_yes", probability(self.p_yes))
+        if self.elapsed_ms is not None:
+            try:
+                valid = (
+                    type(self.elapsed_ms) in (int, float)
+                    and math.isfinite(self.elapsed_ms)
+                    and self.elapsed_ms >= 0
+                )
+            except OverflowError:
+                valid = False
+            if not valid:
+                raise ValueError("elapsed_ms must be finite and nonnegative, or None.")
+            object.__setattr__(self, "elapsed_ms", float(self.elapsed_ms))
+
+
+@dataclass(frozen=True)
+class LatencyRow:
+    provider: str
+    model: str
+    measured_count: int
+    missing_count: int
+    min_ms: float | None
+    mean_ms: float | None
+    stddev_ms: float | None
+    median_ms: float | None
+    p90_ms: float | None
+    p95_ms: float | None
+    p99_ms: float | None
+    max_ms: float | None
+
+
+def _percentile(values: Sequence[float], fraction: float) -> float:
+    """Interpolate within sorted observations, including singleton samples."""
+    position = (len(values) - 1) * fraction
+    lower = math.floor(position)
+    upper = math.ceil(position)
+    return values[lower] + (values[upper] - values[lower]) * (position - lower)
+
+
+def summarize_latency(predictions: Sequence[Prediction]) -> list[LatencyRow]:
+    """Summarize measured calls once per provider/model, independent of thresholds."""
+    grouped: dict[tuple[str, str], list[Prediction]] = defaultdict(list)
+    for prediction in predictions:
+        grouped[prediction.provider, prediction.model].append(prediction)
+    rows = []
+    for (provider, model), group in sorted(grouped.items()):
+        values = sorted(item.elapsed_ms for item in group if item.elapsed_ms is not None)
+        rows.append(
+            LatencyRow(
+                provider=provider,
+                model=model,
+                measured_count=len(values),
+                missing_count=len(group) - len(values),
+                min_ms=values[0] if values else None,
+                mean_ms=mean(values) if values else None,
+                stddev_ms=pstdev(values) if values else None,
+                median_ms=_percentile(values, 0.50) if values else None,
+                p90_ms=_percentile(values, 0.90) if values else None,
+                p95_ms=_percentile(values, 0.95) if values else None,
+                p99_ms=_percentile(values, 0.99) if values else None,
+                max_ms=values[-1] if values else None,
+            )
+        )
+    return rows
 
 
 @dataclass(frozen=True)
@@ -217,10 +285,14 @@ def collect_predictions(
             reference=example.reference,
             criteria=dataset.criteria,
         )
+        started_ns = perf_counter_ns()
         verdict = verifier.evaluate(example.candidate)
+        elapsed_ms = (perf_counter_ns() - started_ns) / 1_000_000
         if verdict.p_yes is None or verdict.model is None:
             raise RuntimeError(f"Provider returned no judgment for example '{example.id}'.")
-        predictions.append(Prediction(example.id, provider_name, verdict.model, verdict.p_yes))
+        predictions.append(
+            Prediction(example.id, provider_name, verdict.model, verdict.p_yes, elapsed_ms)
+        )
     return predictions
 
 
@@ -313,7 +385,7 @@ def load_predictions(path: str | Path, dataset: LabeledDataset) -> list[Predicti
     if (
         header.get("type") != "prediction_set"
         or type(header.get("format_version")) is not int
-        or header.get("format_version") != FORMAT_VERSION
+        or header.get("format_version") not in (FORMAT_VERSION, PREDICTION_FORMAT_VERSION)
         or header.get("dataset") != dataset.name
         or header.get("dataset_version") != dataset.version
         or header.get("dataset_sha256") != dataset.content_sha256
@@ -324,7 +396,13 @@ def load_predictions(path: str | Path, dataset: LabeledDataset) -> list[Predicti
     predictions: list[Prediction] = []
     for line_number, raw in records[1:]:
         record = _object(raw, line_number, source)
-        _keys(record, {"type", "id", "provider", "model", "p_yes"}, set(), source, line_number)
+        _keys(
+            record,
+            {"type", "id", "provider", "model", "p_yes"},
+            {"elapsed_ms"} if header["format_version"] == PREDICTION_FORMAT_VERSION else set(),
+            source,
+            line_number,
+        )
         if record.get("type") != "prediction":
             raise EvaluationFormatError(f"{source}:{line_number}: expected a prediction record.")
         try:
@@ -334,6 +412,7 @@ def load_predictions(path: str | Path, dataset: LabeledDataset) -> list[Predicti
                     provider=_text(record, "provider", source, line_number),
                     model=_text(record, "model", source, line_number),
                     p_yes=record["p_yes"],  # type: ignore[arg-type]
+                    elapsed_ms=record.get("elapsed_ms"),  # type: ignore[arg-type]
                 )
             )
         except (TypeError, ValueError) as exc:
@@ -349,7 +428,7 @@ def save_predictions(
     records = [
         {
             "type": "prediction_set",
-            "format_version": FORMAT_VERSION,
+            "format_version": PREDICTION_FORMAT_VERSION,
             "dataset": dataset.name,
             "dataset_version": dataset.version,
             "dataset_sha256": dataset.content_sha256,
@@ -361,6 +440,11 @@ def save_predictions(
                 "provider": prediction.provider,
                 "model": prediction.model,
                 "p_yes": prediction.p_yes,
+                **(
+                    {"elapsed_ms": prediction.elapsed_ms}
+                    if prediction.elapsed_ms is not None
+                    else {}
+                ),
             }
             for prediction in predictions
         ),
@@ -557,6 +641,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             "uncertain": "uncertain predictions / all examples",
         },
         "results": [asdict(row) for row in rows],
+        "latency": {
+            "unit": "ms",
+            "scope": "successful verifier.evaluate calls; includes transport and response "
+            "validation, excludes provider setup and snapshot/report I/O",
+            "percentile_method": "linear interpolation at (n - 1) * p",
+            "stddev_method": "population",
+            "results": [asdict(row) for row in summarize_latency(predictions)],
+        },
     }
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0

@@ -773,12 +773,45 @@ checkpoint may download model weights. Prediction snapshots contain `p_yes`,
 provider, and returned model; keep them with the dataset version. The report
 also includes the SHA-256 of the exact dataset file, so a changed file cannot be
 silently paired with old predictions. A snapshot records the provider, returned
-model, and raw probability for each example:
+model, raw probability, and elapsed call time in milliseconds for each example.
+New snapshots use prediction format version 2; dataset format version remains 1:
 
 ```jsonl
-{"type":"prediction_set","format_version":1,"dataset":"support-policy","dataset_version":"1.0.0","dataset_sha256":"..."}
-{"type":"prediction","id":"in-policy","provider":"typesafe","model":"jev-1.13.0","p_yes":0.98}
+{"type":"prediction_set","format_version":2,"dataset":"support-policy","dataset_version":"1.0.0","dataset_sha256":"..."}
+{"type":"prediction","id":"in-policy","provider":"typesafe","model":"jev-1.13.0","p_yes":0.98,"elapsed_ms":304.2}
 ```
+
+The JSON report includes a separate `latency` section, grouped once by provider
+and returned model, regardless of how many threshold pairs you compare. Each row
+contains `measured_count`, `missing_count`, `min_ms`, `max_ms`, `mean_ms`,
+`stddev_ms`, `median_ms`, `p90_ms`, `p95_ms`, and `p99_ms`. Standard deviation
+describes the measured population. Percentiles use linear interpolation at
+position `(n - 1) * p` in sorted measurements; the method and units are also
+included in the report. With one measurement, every percentile equals that
+measurement and standard deviation is zero.
+
+Timing uses a monotonic high-resolution clock around each successful
+`JevVerifier.evaluate()` call. It includes request preparation, network round
+trip (for remote providers), inference, and response validation. It excludes
+provider construction, local-model loading, snapshot saving, and report
+generation. Calls run sequentially through one provider instance; the first
+call is included, so DNS, TLS, or other connection setup can affect it. No
+warm-up calls or repetitions are added. This measures the caller's response
+latency; it does not isolate server inference time. A failed evaluation stops
+the run under the existing error policy and does not contribute a success timing.
+
+Offline replay reproduces the same timing summary without another API call.
+Version 1 snapshots still load; their timing is unavailable. Missing timing
+(omitted `elapsed_ms` or `null` in version 2) is counted in `missing_count` and
+excluded from the distribution. All timing statistics are `null` if no
+measurements exist. Numeric durations must be finite and nonnegative. Older
+readers cannot read version 2 snapshots.
+
+Tail percentiles from a small dataset are descriptive: with 24 calls, p99 is
+close to the slowest observation. Publish the measurement count and use repeated
+runs under the same network conditions before drawing conclusions about p95,
+p99, or provider speed. Historical snapshots without timing cannot reconstruct
+per-call latency from a total runner duration.
 
 The report defines false-acceptance rate as false accepts divided by expected
 rejects, false-rejection rate as false rejects divided by expected accepts, and

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Measure each successful evaluation call and persist `elapsed_ms` in version 2
+  prediction snapshots. Report count, missing count, mean, median, population
+  standard deviation, min/max, and p90/p95/p99 by provider and returned model.
+  Offline replay preserves timing; version 1 snapshots remain readable with
+  unavailable latency reported as null.
+
 - Add an opt-in CoreInfra primitive matrix and record one successful bounded
   live check of Jev 1.14/Luna through both protocols plus Luna image Noul.
   Preserve partial receipts on errors; ordinary CI remains offline.

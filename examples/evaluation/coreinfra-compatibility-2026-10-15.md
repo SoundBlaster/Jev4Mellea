@@ -64,6 +64,10 @@ run. No FAR/FRR/uncertainty quality comparison is claimed.
 
 SHA-256 values identify the exact capture, image, and local source files used:
 
+Provider sources at the time of the run correspond to commit
+`371dedadb0b2b5eca591654c1afc187c7e1b33f2`. The hashes below preserve that
+historical receipt; later adapter changes do not rewrite the captured evidence.
+
 | Artifact | SHA-256 |
 | --- | --- |
 | Normalized JSON capture | `2142643dd2f1d7606a5a042194876db6b66120f3722802a22226eab022ee8c2f` |

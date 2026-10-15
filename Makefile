@@ -14,6 +14,8 @@ EVAL_API_KEY_ENV ?=
 EVAL_PROVIDER_LABEL ?=
 export EVAL_BASE_URL EVAL_ENDPOINT_URL EVAL_API_KEY_ENV EVAL_PROVIDER_LABEL
 EVAL_THRESHOLD ?= 0.10,0.90
+VISUAL_REFERENCE ?= examples/evaluation/visual
+export VISUAL_REFERENCE EVAL_PREDICTIONS EVAL_MODEL EVAL_PROVIDER EVAL_THRESHOLD
 PROXY_PROVIDER ?= typesafe
 PROXY_MODEL ?=
 PROXY_BASE_URL ?=
@@ -28,7 +30,7 @@ COREINFRA_REPORT ?=
 export COREINFRA_JEV_MODEL COREINFRA_IMAGE COREINFRA_REPORT
 
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate visual-reference diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate visual-reference visual-evaluate visual-live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -53,6 +55,8 @@ help: ## Show the available development commands
 	  'evaluate         Score a saved prediction file offline (set EVAL_PREDICTIONS)' \
 	  'live-evaluate    Explicitly run the labeled dataset through a model' \
 	  'visual-reference Validate the synthetic visual reference offline (stdlib only)' \
+	  'visual-evaluate  Replay a complete image capture offline (EVAL_PREDICTIONS)' \
+	  'visual-live-evaluate Upload the visual reference once (EVAL_PREDICTIONS required; billable)' \
 	  'diff-check       Check staged and unstaged changes for whitespace errors' \
 	  'committed-diff-check Check HEAD against its first parent for whitespace errors' \
 	  'clean            Remove the virtualenv and generated Python/test build files'
@@ -146,6 +150,20 @@ live-evaluate: $(INSTALL_STAMP) ## Explicitly evaluate labeled examples; may sen
 	if [ -n "$${EVAL_API_KEY_ENV:-}" ]; then set -- "$$@" --api-key-env "$$EVAL_API_KEY_ENV"; fi; \
 	if [ -n "$${EVAL_PROVIDER_LABEL:-}" ]; then set -- "$$@" --provider-label "$$EVAL_PROVIDER_LABEL"; fi; \
 	$(PY) examples/evaluate.py '$(EVAL_DATASET)' --live --provider '$(EVAL_PROVIDER)' $(if $(EVAL_MODEL),--model '$(EVAL_MODEL)',) --threshold '$(EVAL_THRESHOLD)' $(if $(EVAL_PREDICTIONS),--save-predictions '$(EVAL_PREDICTIONS)',) "$$@"
+
+visual-evaluate: $(INSTALL_STAMP) ## Score a complete saved visual capture without inference
+	@test -n "$$EVAL_PREDICTIONS" || { echo 'Set EVAL_PREDICTIONS to a visual capture.' >&2; exit 2; }
+	$(PY) examples/evaluate_visual.py "$$VISUAL_REFERENCE" --predictions "$$EVAL_PREDICTIONS" --threshold "$$EVAL_THRESHOLD"
+
+visual-live-evaluate: $(INSTALL_STAMP) ## Opt into 12 sequential image calls, with no automatic retries
+	@test -n "$$EVAL_PREDICTIONS" || { echo 'Set EVAL_PREDICTIONS to a NEW capture path.' >&2; exit 2; }
+	@set --; \
+	if [ -n "$${EVAL_BASE_URL:-}" ]; then set -- "$$@" --base-url "$$EVAL_BASE_URL"; fi; \
+	if [ -n "$${EVAL_ENDPOINT_URL:-}" ]; then set -- "$$@" --endpoint-url "$$EVAL_ENDPOINT_URL"; fi; \
+	if [ -n "$${EVAL_API_KEY_ENV:-}" ]; then set -- "$$@" --api-key-env "$$EVAL_API_KEY_ENV"; fi; \
+	if [ -n "$${EVAL_PROVIDER_LABEL:-}" ]; then set -- "$$@" --provider-label "$$EVAL_PROVIDER_LABEL"; fi; \
+	if [ -n "$${EVAL_MODEL:-}" ]; then set -- "$$@" --model "$$EVAL_MODEL"; fi; \
+	$(PY) examples/evaluate_visual.py "$$VISUAL_REFERENCE" --live --provider "$$EVAL_PROVIDER" --save-predictions "$$EVAL_PREDICTIONS" --threshold "$$EVAL_THRESHOLD" "$$@"
 
 visual-reference: ## Verify scene pixels, labels, and image hashes; never call a provider
 	$(PYTHON) examples/visual_reference.py --check

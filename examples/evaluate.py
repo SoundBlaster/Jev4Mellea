@@ -590,6 +590,37 @@ def _run_live(
     )
 
 
+def build_report(
+    dataset: LabeledDataset,
+    predictions: Sequence[Prediction],
+    thresholds: Sequence[ThresholdPair],
+) -> dict[str, object]:
+    """Build the common quality and latency report for a complete capture."""
+    rows = score_predictions(dataset, predictions, thresholds)
+    return {
+        "dataset": {
+            "name": dataset.name,
+            "version": dataset.version,
+            "sha256": dataset.content_sha256,
+        },
+        "sample_count": len(dataset.examples),
+        "rates": {
+            "false_acceptance": "false accepts / expected rejects",
+            "false_rejection": "false rejects / expected accepts",
+            "uncertain": "uncertain predictions / all examples",
+        },
+        "results": [asdict(row) for row in rows],
+        "latency": {
+            "unit": "ms",
+            "scope": "successful verifier.evaluate calls; includes transport and response "
+            "validation, excludes provider setup and snapshot/report I/O",
+            "percentile_method": "linear interpolation at (n - 1) * p",
+            "stddev_method": "population",
+            "results": [asdict(row) for row in summarize_latency(predictions)],
+        },
+    }
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _parser()
     args = parser.parse_args(argv)
@@ -622,34 +653,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 save_predictions(args.save_predictions, dataset, predictions)
         else:
             predictions = load_predictions(args.predictions, dataset)
-        rows = score_predictions(
+        report = build_report(
             dataset, predictions, args.threshold or [ThresholdPair(*DEFAULT_THRESHOLD)]
         )
     except (OSError, UnicodeError, EvaluationFormatError, RuntimeError, ValueError) as exc:
         print(f"evaluation failed: {exc}", file=sys.stderr)
         return 2
-    report = {
-        "dataset": {
-            "name": dataset.name,
-            "version": dataset.version,
-            "sha256": dataset.content_sha256,
-        },
-        "sample_count": len(dataset.examples),
-        "rates": {
-            "false_acceptance": "false accepts / expected rejects",
-            "false_rejection": "false rejects / expected accepts",
-            "uncertain": "uncertain predictions / all examples",
-        },
-        "results": [asdict(row) for row in rows],
-        "latency": {
-            "unit": "ms",
-            "scope": "successful verifier.evaluate calls; includes transport and response "
-            "validation, excludes provider setup and snapshot/report I/O",
-            "percentile_method": "linear interpolation at (n - 1) * p",
-            "stddev_method": "population",
-            "results": [asdict(row) for row in summarize_latency(predictions)],
-        },
-    }
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0
 

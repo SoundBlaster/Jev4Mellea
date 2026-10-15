@@ -657,9 +657,21 @@ and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/
 For image work, the [synthetic crosswalk reference](examples/evaluation/visual/README.md)
 provides twelve labeled PNG scenes with geometry-derived positive/negative
 cases and asset hashes. Run `make visual-reference` to check the bundle offline.
-Its visual format is separate from the text evaluator below; visual inference
-and metric collection are the next step. The diagrams do not establish quality
-on real photographs or parking-law decisions.
+Its visual format is separate from the text evaluator below. The
+[visual runner](examples/evaluation/visual/README.md#evaluate-jev-and-luna)
+compares Jev and Luna with shared quality and latency reports:
+
+```bash
+# Explicit opt-in: up to twelve billable image uploads; use a new receipt path.
+make visual-live-evaluate EVAL_PROVIDER=typesafe EVAL_MODEL=jev-1.14.0 \
+  EVAL_PREDICTIONS=/tmp/jev-visual.jsonl
+# Replay offline without constructing a provider.
+make visual-evaluate EVAL_PREDICTIONS=/tmp/jev-visual.jsonl
+```
+
+See the visual reference guide for Luna, Proxy configuration, and multi-provider
+comparison. These diagrams do not establish quality on real photographs or
+parking-law decisions.
 
 `examples/evaluate.py` reports false-acceptance, false-rejection, and uncertain
 rates for every provider, returned model, and threshold pair. The checked-in

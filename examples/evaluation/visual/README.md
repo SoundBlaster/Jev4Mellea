@@ -78,9 +78,9 @@ context.** Those fields exist for scoring and audit. Verify all asset hashes
 before the first request; do not fall back to text-only inference if an asset is
 missing or invalid.
 
-The existing text evaluator intentionally rejects this format. A visual runner,
-prediction snapshots, and FAR/FRR/uncertainty reports will be added separately.
-No live quality numbers have been collected for this dataset.
+The existing text evaluator intentionally rejects this format. Use the visual
+runner below for capture and replay. No live quality numbers have been collected
+for this dataset.
 
 ## Check and regenerate
 
@@ -112,3 +112,125 @@ default write mode. Keep the reported SHA-256 of `reference.jsonl` with future
 prediction snapshots: it binds the task, labels, annotations, and image hashes.
 Changing any of those requires a new reference revision and a fresh inference
 capture; previous predictions must not be silently reused.
+
+## Evaluate Jev and Luna
+
+[`evaluate_visual.py`](../../evaluate_visual.py) deliberately supports this
+procedural reference bundle, including copies made with the generator's
+`--output` option. It does not accept arbitrary photos or infer reference labels.
+It composes `WithImages` with `JevVerifier` and reuses the text evaluator's
+quality, threshold, and latency calculations; the package/Mellea API is unchanged.
+
+Install the regular development environment with `make install`. Every live
+capture needs an explicit opt-in and a **new** receipt path. These commands each
+upload twelve images, one request per scene, with no retries, warmup, or parallel
+requests. They may incur charges. Run each only when its upload and cost are
+intended; the second command is a separate opt-in:
+
+```bash
+# Reads TYPESAFE_API_KEY; pinned Jev version requested.
+make visual-live-evaluate EVAL_PROVIDER=typesafe EVAL_MODEL=jev-1.14.0 \
+  EVAL_PREDICTIONS=/tmp/jev-visual.jsonl
+
+# Reads OPENAI_API_KEY; requires the optional OpenAI SDK (included in dev).
+make visual-live-evaluate EVAL_PROVIDER=openai EVAL_MODEL=gpt-6-luna \
+  EVAL_PREDICTIONS=/tmp/luna-visual.jsonl
+```
+
+Before constructing a provider, the runner validates **all** scene pixels,
+labels, annotation geometry, overview, reference digest, and image hashes. It
+then loads immutable image bytes and checks those hashes again. Only requirement,
+criteria, the candidate, and the current scene's images are sent to the model.
+There is no text-only fallback or context shared across scenes.
+
+The CLI defaults to `--max-requests 12` and a per-call `--timeout 30` seconds.
+Exceeding the budget fails before provider construction; it never silently scores
+a subset. To use these options directly:
+
+```bash
+.venv/bin/python examples/evaluate_visual.py examples/evaluation/visual \
+  --live --provider typesafe --model jev-1.14.0 \
+  --max-requests 12 --timeout 30 --save-predictions /tmp/jev-visual-new.jsonl
+```
+
+### Proxy connections
+
+Choose the wire protocol through `--provider`: `typesafe` for System One,
+`openai` for Decisions. `--base-url` and `--endpoint-url` are mutually exclusive.
+A custom URL always requires its own explicit `--api-key-env`; credentials never
+fall back to the direct provider's environment variable. Give each route a
+separate label when comparing protocols or gateways:
+
+```bash
+make visual-live-evaluate EVAL_PROVIDER=openai EVAL_MODEL=gpt-6-luna \
+  EVAL_ENDPOINT_URL=https://proxy.example/openai/api/v1/decisions \
+  EVAL_API_KEY_ENV=PROXY_API_KEY EVAL_PROVIDER_LABEL=proxy-decisions-luna \
+  EVAL_PREDICTIONS=/tmp/proxy-luna-visual.jsonl
+```
+
+The selected gateway must support the provider's image wire format. Protocol
+compatibility for text does not establish image support. The runner uses the
+existing providers' disabled retries and redirects; it never discovers models or
+switches protocols after an error. TypeSafe image support remains
+[experimental upstream](https://docs.typesafe.ai/images).
+
+### Offline comparison and reports
+
+Replay a saved capture with no credentials, provider construction, or uploads:
+
+```bash
+make visual-evaluate EVAL_PREDICTIONS=/tmp/jev-visual.jsonl
+
+# Combine distinct provider/model groups; sweep thresholds without new calls.
+.venv/bin/python examples/evaluate_visual.py \
+  --predictions /tmp/jev-visual.jsonl --predictions /tmp/luna-visual.jsonl \
+  --threshold 0.10,0.90 --threshold 0.20,0.80 > /tmp/visual-report.json
+```
+
+The JSON report uses the text evaluator's existing definitions:
+
+- FAR: false accepts / the 6 expected rejects.
+- FRR: false rejects / the 6 expected accepts.
+- Uncertain rate: predictions between thresholds / all 12 examples.
+- Rates and counts are grouped by source label, **returned** model, and threshold.
+- Latency is grouped once per source/model: measured/missing count, mean, median,
+  population standard deviation, min/max, and p90/p95/p99. Percentiles use linear
+  interpolation at `(n - 1) * p`.
+
+Latency times successful `JevVerifier.evaluate` calls with bound images. It
+includes serialization, transport, and response validation; excludes image
+loading/checking, provider setup, and receipt/report I/O. This is client-observed
+request latency, not isolated server inference time. Calls remain in reference
+order; no cache-control or server-cache-hit claim is made. With only twelve
+correlated scenes, p95/p99 are descriptive observations, not stable production
+latency estimates. Uncertain predictions are neither false accepts nor false
+rejects, so interpret all three rates together.
+
+### Visual capture format and failure handling
+
+Visual JSONL capture **format version 1** is distinct from text prediction files:
+
+1. A `visual_prediction_set` header binds dataset name/version and exact reference
+   SHA-256 (including task, labels, geometry, and image hashes). `capture` records
+   provider label, protocol, requested model, UTC start time, runner/metrics source
+   hashes, adapter Python-source hashes, and installed adapter/SDK versions.
+2. Each `visual_prediction` records `example_id`, provider, actual model, raw
+   `p_yes`, measured `elapsed_ms`, and `request_id` when supplied (otherwise null).
+3. A final `visual_run` record declares `status: complete` and the prediction count.
+
+Receipts contain no image/base64 payloads, full endpoint URLs, or API keys. Each
+successful row is flushed immediately. On an exception or interrupt, the runner
+stops without retries, writes `status: failed` with successful count and error
+class when the file is writable, and prints no provider exception body. Abrupt
+process termination may leave no footer. Incomplete files are retained for audit
+but rejected for scoring; there is no implicit resume or automatic paid rerun.
+A provider-side failure may still be billable.
+
+Offline replay validates the same reference and requires a complete, finite,
+one-per-example prediction set for each source/model. It rejects unknown or
+duplicate IDs, missing scenes, changed references, text captures, and model changes
+within a capture. Combining two runs of the same source/model would duplicate
+IDs and is rejected; use distinct labels for separately intended comparisons.
+Capture hashes bind inputs and record local provenance; they are not signatures
+or proof that a receipt came from a provider. Store the reference, receipts, and
+report together when publishing any limited synthetic comparison.

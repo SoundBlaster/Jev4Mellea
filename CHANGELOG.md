@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Add experimental TypeSafe image attachments to Noul, Choice, Score, and mixed
+  `system_one` requests. Keep typed results and existing Mellea contracts.
+- Add `ImageInput` for local PNG/JPEG bytes and explicit Mellea `ImageBlock`
+  conversion, plus `WithImages` for composing visual context with existing
+  verifier, classifier, scorer, and Requirement policies.
+- Require TypeSafe SDK 0.7.5 or newer below 0.8.0; use its multipart serializer
+  and per-request image opt-in header. Explicitly disable request compression
+  to preserve the existing text/gateway wire format.
+- Add `make image-live-check IMAGE=...` for one opt-in, potentially billable
+  mixed-primitive image request. Keep ordinary CI offline.
+
 ## 0.6.0 — 2026-10-14
 
 - Add `SubQProvider` for SubQ Decisions Noul, Choice, and Score with strict

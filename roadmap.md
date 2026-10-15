@@ -72,7 +72,7 @@ plugin discovery.
 
 ## CoreInfra Hub compatibility
 
-- **Implemented; awaiting merge.** Compose existing TypeSafe/OpenAI providers
+- **Completed (PRs #57–59).** Compose existing TypeSafe/OpenAI providers
   through `coreinfra_provider`, with explicit model/protocol selection and Hub
   credentials. Use common PNG/JPEG image inputs for OpenAI Decisions and Mellea
   Requirements. Keep exact operation URLs and provider-specific SDK types internal.
@@ -137,15 +137,15 @@ plugin discovery.
 
 ## Experimental image input
 
-- **Implemented; awaiting merge.** Add explicit `ImageInput` attachments to
+- **Completed (PR #55).** Add explicit `ImageInput` attachments to
   TypeSafe Noul, Choice, Score, and mixed batches through SDK 0.7.5 multipart.
   Preserve primitive results and compose existing Mellea helpers with
   `WithImages`; convert Mellea `ImageBlock` explicitly, without scanning history
   or fetching URLs. Keep live image uploads opt-in and ordinary CI offline.
-- **Next — Visual evaluation reference.** Define non-sensitive labeled image
-  examples and observable predicates before measuring semantic quality. Keep
-  edited or generated image provenance with the reference; a successful smoke
-  request is not an accuracy benchmark or a parking-law determination.
+- **Completed (PRs #56, #61, #62) — Synthetic visual evaluation.** Add
+  geometry-labeled diagrams, a bounded opt-in runner, and saved Jev/Luna
+  quality/latency captures. See Visual evaluation below for the photographic
+  reference planned next.
 - **Deferred — Box.** Introduce a separate bounding-box result contract only
   for a concrete localization use case. Account for Jev 1.14 requirements and
   use a separate presence predicate when an object may be absent.

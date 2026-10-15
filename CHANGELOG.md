@@ -8,6 +8,29 @@
   Offline replay preserves timing; version 1 snapshots remain readable with
   unavailable latency reported as null.
 
+- Add an opt-in CoreInfra primitive matrix and record one successful bounded
+  live check of Jev 1.14/Luna through both protocols plus Luna image Noul.
+  Preserve partial receipts on errors; ordinary CI remains offline.
+
+- Add explicit PNG/JPEG image inputs to OpenAI Decisions Noul, Choice, and
+  Score, reusing `ImageInput` and `WithImages` for Mellea Requirements. Send
+  named base64 image parts through the official SDK; preserve text payloads.
+
+- Add `coreinfra_provider` as an explicit connection factory over the existing
+  TypeSafe and OpenAI SDK providers. Select protocol and model independently,
+  use the documented Hub operation URLs, and read only `COREINFRA_API_KEY`.
+
+- Add experimental TypeSafe image attachments to Noul, Choice, Score, and mixed
+  `system_one` requests. Keep typed results and existing Mellea contracts.
+- Add `ImageInput` for local PNG/JPEG bytes and explicit Mellea `ImageBlock`
+  conversion, plus `WithImages` for composing visual context with existing
+  verifier, classifier, scorer, and Requirement policies.
+- Require TypeSafe SDK 0.7.5 or newer below 0.8.0; use its multipart serializer
+  and per-request image opt-in header. Explicitly disable request compression
+  to preserve the existing text/gateway wire format.
+- Add `make image-live-check IMAGE=...` for one opt-in, potentially billable
+  mixed-primitive image request. Keep ordinary CI offline.
+
 ## 0.6.0 — 2026-10-14
 
 - Add `SubQProvider` for SubQ Decisions Noul, Choice, and Score with strict

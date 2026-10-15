@@ -17,6 +17,9 @@ from typesafe_sdk import (
     ChoiceAnswer as SDKChoiceAnswer,
 )
 from typesafe_sdk import (
+    Image as SDKImage,
+)
+from typesafe_sdk import (
     Noul as SDKNoul,
 )
 from typesafe_sdk import (
@@ -59,6 +62,7 @@ from ..criteria import (
     normalize_score_criteria,
     probability,
 )
+from ..images import ImageInput, _normalize_images
 from ..results import (
     ChoiceResult,
     NoulResult,
@@ -331,6 +335,8 @@ class TypeSafeProvider:
             timeout=timeout,
             base_url=base_url,
             http_client=http_client,
+            # SDK 0.7.5 enables zstd by default; retain the existing gateway wire format.
+            compression=False,
         )
 
     def system_one(
@@ -338,10 +344,25 @@ class TypeSafeProvider:
         *,
         state: dict[str, Any],
         questions: Mapping[str, TypeSafeQuestion],
+        images: Mapping[str, ImageInput] | None = None,
     ) -> SystemOneResult:
-        """Evaluate one or more named primitive questions in a single HTTP request."""
+        """Evaluate named primitives, optionally attaching explicit PNG/JPEG images.
+
+        Attachments are available at ``state['images'][name]``. Supplying them
+        opts only this request into the upstream experimental image API.
+        """
         if not isinstance(state, dict):
             raise TypeError("state must be a JSON-serializable dictionary.")
+        extra_headers = None
+        if images is not None:
+            attached = _normalize_images(images)
+            if "images" in state:
+                raise ValueError("state['images'] is reserved when supplying image attachments.")
+            state = {
+                **state,
+                "images": {name: SDKImage(image.data) for name, image in attached.items()},
+            }
+            extra_headers = {"TypeSafe-Danger-Zone-Images": "true"}
         if not isinstance(questions, Mapping) or not questions:
             raise ValueError("questions must be a nonempty mapping of IDs to question types.")
         normalized_questions: dict[str, TypeSafeQuestion] = {}
@@ -363,6 +384,7 @@ class TypeSafeProvider:
                 state=state,
                 questions=sdk_questions,
                 response_model=_AdapterSystemOneResponse,
+                extra_headers=extra_headers,
             )
         except TypeSafeAPIResponseValidationError:
             raise JevProtocolError(
@@ -408,10 +430,11 @@ class TypeSafeProvider:
         state: dict[str, Any],
         question: str,
         criteria: NoulCriteria | None = None,
+        images: Mapping[str, ImageInput] | None = None,
     ) -> NoulResult:
         """Return P(yes). Exceptions never include the response body or API key."""
         result = self.system_one(
-            state=state, questions={QUESTION_ID: NoulQuestion(question, criteria)}
+            state=state, questions={QUESTION_ID: NoulQuestion(question, criteria)}, images=images
         ).answers[QUESTION_ID]
         if not isinstance(result, NoulResult):
             raise JevProtocolError("Malformed TypeSafe Noul response; refusing to accept.")
@@ -423,11 +446,13 @@ class TypeSafeProvider:
         state: dict[str, Any],
         question: str,
         criteria: ChoiceCriteria,
+        images: Mapping[str, ImageInput] | None = None,
     ) -> ChoiceResult:
         """Select one configured class and return its distribution and confidence."""
         result = self.system_one(
             state=state,
             questions={CHOICE_QUESTION_ID: ChoiceQuestion(question, criteria)},
+            images=images,
         ).answers[CHOICE_QUESTION_ID]
         if not isinstance(result, ChoiceResult):
             raise JevProtocolError("Malformed TypeSafe Choice response; refusing to classify.")
@@ -439,11 +464,13 @@ class TypeSafeProvider:
         state: dict[str, Any],
         question: str,
         criteria: Sequence[str],
+        images: Mapping[str, ImageInput] | None = None,
     ) -> ScoreResult:
         """Rate the state against ordered levels and return the full distribution."""
         result = self.system_one(
             state=state,
             questions={SCORE_QUESTION_ID: ScoreQuestion(question, criteria)},
+            images=images,
         ).answers[SCORE_QUESTION_ID]
         if not isinstance(result, ScoreResult):
             raise JevProtocolError("Malformed TypeSafe Score response; refusing to score.")

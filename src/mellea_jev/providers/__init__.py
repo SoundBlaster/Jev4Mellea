@@ -1,5 +1,6 @@
 """Provider implementations for Mellea Jev adapter contracts."""
 
+from .coreinfra import CoreInfraProtocol, coreinfra_provider
 from .laya import LayaAgent, LayaProtocolError, LayaProvider
 from .openai import (
     OpenAIHTTPError,
@@ -18,6 +19,8 @@ from .subq import SubQHTTPError, SubQProtocolError, SubQProvider, SubQProviderEr
 from .typesafe import TypeSafeProvider
 
 __all__ = [
+    "CoreInfraProtocol",
+    "coreinfra_provider",
     "LayaAgent",
     "LayaProtocolError",
     "LayaProvider",

@@ -1,0 +1,308 @@
+{
+  "format_version": 1,
+  "kind": "coreinfra-compatibility",
+  "outcome": "pass",
+  "planned_calls": 13,
+  "results": [
+    {
+      "requested_model": "jev-preview",
+      "protocol": "systemone",
+      "primitive": "noul",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "p_yes": 0.99,
+        "model": "jev-1.14.0",
+        "request_id": "req_01a13ee6d3d77077b227d7912d921875",
+        "usage": {
+          "input_tokens": 327,
+          "output_tokens": 22,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 1.704272792005213
+    },
+    {
+      "requested_model": "jev-preview",
+      "protocol": "systemone",
+      "primitive": "choice",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "choice": "billing",
+        "confidence": 1.0,
+        "probabilities": {
+          "billing": 1.0,
+          "technical": 0.0
+        },
+        "model": "jev-1.14.0",
+        "request_id": "req_01a13ee6d60e76e6aa14591aa51dd490",
+        "usage": {
+          "input_tokens": 338,
+          "output_tokens": 31,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.5467717090068618
+    },
+    {
+      "requested_model": "jev-preview",
+      "protocol": "systemone",
+      "primitive": "score",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "score": 2.0,
+        "confidence": 1.0,
+        "probabilities": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 1.0
+        },
+        "legend": {
+          "0": "No action needed.",
+          "1": "Needs attention this week.",
+          "2": "Needs attention today."
+        },
+        "model": "jev-1.14.0",
+        "request_id": "req_01a13ee6d829790386258fcaa2440895",
+        "usage": {
+          "input_tokens": 331,
+          "output_tokens": 17,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.5434469999891007
+    },
+    {
+      "requested_model": "jev-preview",
+      "protocol": "decisions",
+      "primitive": "noul",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "p_yes": 0.99,
+        "model": "jev-1.14.0",
+        "request_id": null,
+        "usage": {
+          "input_tokens": 331,
+          "output_tokens": 22,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 1.4142000829888275
+    },
+    {
+      "requested_model": "jev-preview",
+      "protocol": "decisions",
+      "primitive": "choice",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "choice": "billing",
+        "confidence": 1.0,
+        "probabilities": {
+          "billing": 1.0,
+          "technical": 0.0
+        },
+        "model": "jev-1.14.0",
+        "request_id": null,
+        "usage": {
+          "input_tokens": 369,
+          "output_tokens": 39,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.5817110419884557
+    },
+    {
+      "requested_model": "jev-preview",
+      "protocol": "decisions",
+      "primitive": "score",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "score": 2.0,
+        "confidence": 1.0,
+        "probabilities": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 1.0
+        },
+        "legend": {
+          "0": "No action needed.",
+          "1": "Needs attention this week.",
+          "2": "Needs attention today."
+        },
+        "model": "jev-1.14.0",
+        "request_id": null,
+        "usage": {
+          "input_tokens": 348,
+          "output_tokens": 19,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.5463354999956209
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "systemone",
+      "primitive": "noul",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "p_yes": 1.0,
+        "model": "gpt-6-luna",
+        "request_id": null,
+        "usage": {
+          "input_tokens": 143,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 2.5177548749925336
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "systemone",
+      "primitive": "choice",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "choice": "billing",
+        "confidence": 1.0,
+        "probabilities": {
+          "billing": 1.0,
+          "technical": 0.0
+        },
+        "model": "gpt-6-luna",
+        "request_id": null,
+        "usage": {
+          "input_tokens": 136,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.5988401250069728
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "systemone",
+      "primitive": "score",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "score": 2.0,
+        "confidence": 1.0,
+        "probabilities": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 1.0
+        },
+        "legend": {
+          "0": "No action needed.",
+          "1": "Needs attention this week.",
+          "2": "Needs attention today."
+        },
+        "model": "gpt-6-luna",
+        "request_id": null,
+        "usage": {
+          "input_tokens": 149,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.6272446250077337
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "decisions",
+      "primitive": "noul",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "p_yes": 1.0,
+        "model": "gpt-6-luna",
+        "request_id": "req_a6c792bc05a64112a9fb5279f2360587",
+        "usage": {
+          "input_tokens": 211,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 2.003632958003436
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "decisions",
+      "primitive": "choice",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "choice": "billing",
+        "confidence": 1.0,
+        "probabilities": {
+          "billing": 1.0,
+          "technical": 0.0
+        },
+        "model": "gpt-6-luna",
+        "request_id": "req_85d6d7998d1044b5be29512c13890c4a",
+        "usage": {
+          "input_tokens": 137,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 0.6232130420103204
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "decisions",
+      "primitive": "score",
+      "input_kind": "text",
+      "status": "pass",
+      "result": {
+        "score": 2.0,
+        "confidence": 1.0,
+        "probabilities": {
+          "0": 0.0,
+          "1": 0.0,
+          "2": 1.0
+        },
+        "legend": {
+          "0": "No action needed.",
+          "1": "Needs attention this week.",
+          "2": "Needs attention today."
+        },
+        "model": "gpt-6-luna",
+        "request_id": "req_0a123eb8040c4e3c9f0ccf466b045926",
+        "usage": {
+          "input_tokens": 141,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 1.7278614999959245
+    },
+    {
+      "requested_model": "gpt-6-luna",
+      "protocol": "decisions",
+      "primitive": "noul",
+      "input_kind": "image",
+      "status": "pass",
+      "result": {
+        "p_yes": 1.0,
+        "model": "gpt-6-luna",
+        "request_id": "req_12f33c6e3dff4508853060af4f05de21",
+        "usage": {
+          "input_tokens": 434,
+          "output_tokens": 0,
+          "cost_usd": null
+        }
+      },
+      "elapsed_seconds": 1.3711829590029083
+    }
+  ],
+  "attempted_calls": 13,
+  "completed_calls": 13
+}

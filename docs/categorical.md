@@ -149,7 +149,7 @@ must be explicitly authorized for the selected route; construction never probes.
 | `adapter_revision` | Stable builder/parser revision, initially `responses-choice-v1` |
 | `settings` | Settings sent by this client, plus timeout/response-size/retry limits |
 | `evidence.request_json` | Actual submitted JSON body when available; intended payload on pre-response transport failure |
-| `evidence.response_body` | Bounded response bytes, or `None` when unavailable |
+| `evidence.response_body` | Bounded JSON response bytes; invalid JSON is replaced by an omission marker, unavailable data is `None` |
 | `native_results` | Present only for an explicit native projection |
 
 Settings are client-applied configuration, not an attestation that a Proxy or
@@ -205,8 +205,14 @@ make responses-choice-live-check RESPONSES_MODEL=YOUR_RESPONSES_MODEL \
 ```
 
 The script requires `--live`, model, and credentials. It prints normalized labels
-and metadata, without raw evidence. No live claim is made until that route/model
-successfully executes. Ordinary CI uses the actual SDK over mocked transport.
+and metadata, without raw evidence. Ordinary CI uses the actual SDK over mocked
+transport.
+
+One [live compatibility probe](../examples/evaluation/responses-coreinfra-2026-10-18.md)
+passed on 2026-10-18 through CoreInfra's Responses route with `gpt-6-luna`,
+`reasoning_effort="low"`, and two questions in one request. This establishes
+that specific route/configuration worked once, without measuring accuracy,
+latency distributions, or support by other routes.
 
 ## Downstream comparison boundary
 

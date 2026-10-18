@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.9.0 — 2026-10-18
+
 - Add one-question `TypeSafeCategoricalProvider` and `OpenAICategoricalProvider`
   wrappers that preserve task IDs, native Choice evidence and request metadata
   through one explicit request. Reject unsupported batches before dispatch.

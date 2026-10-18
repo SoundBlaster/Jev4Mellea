@@ -1,7 +1,8 @@
 # Native categorical providers and the optional Mellea bridge
 
 Implemented for proposal [#66](https://github.com/SoundBlaster/Jev4Mellea/issues/66).
-These additions are unreleased; use this implementation's checkout. The
+These additions are available starting with version 0.9.0. Install with
+`pip install 'mellea-jev-adapter[mellea,openai]>=0.9.0'`. The
 underlying categorical/Responses API is available in 0.8.0.
 No dependencies or existing primitive signatures are changed.
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.8.0 — 2026-10-18
+
 - Add provider-neutral categorical tasks/results and explicit native Choice
   projection, without invented probability/confidence fields.
 - Add optional `ResponsesChoiceProvider` for one strict-schema generation
@@ -11,6 +13,11 @@
   Mellea helpers. Preserve native results and threshold semantics.
 - Add an explicit one-call categorical example, offline transport checks, and
   documentation; live compatibility and downstream migration remain opt-in.
+- Record one successful CoreInfra Responses compatibility probe with
+  `gpt-6-luna`, reasoning effort `low`, and two Choice questions in one request.
+  Evaluate decision quality in consuming projects on their own labeled tasks.
+- Suppress malformed JSON diagnostic bodies to prevent recoverable escaped
+  API credentials from leaking through error evidence.
 
 ## 0.7.0 — 2026-10-15
 

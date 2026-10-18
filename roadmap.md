@@ -72,16 +72,17 @@ plugin discovery.
 
 ## Ordinary-generation categorical providers
 
-- **Implemented; awaiting review.** Add `CategoricalTask`, `CategoricalResult`,
+- **Completed (PR #64; version 0.8.0).** Add `CategoricalTask`, `CategoricalResult`,
   and `ResponsesChoiceProvider` for single/shared-state-batch Choice generation
   with strict JSON Schema, explicit settings, safe evidence, and fail-closed
   parsing. Keep categorical labels separate from native probabilities and
   existing Mellea threshold requirements; project native Choice results explicitly.
-- **Next — Bounded compatibility probe.** Explicitly select a Responses model,
-  route, key locator, reasoning setting, and output budget, then run the one-call
-  example. Record observed returned identity, usage when available, and exact
-  source/configuration. Offline checks are not live compatibility evidence.
-- **Later — Consumer migration.** Integrate NormLab or SpecificationMetrics
+- **Compatibility probe completed October 18, 2026.** CoreInfra Responses with
+  `gpt-6-luna`, reasoning effort `low`, and a 1024-token output budget returned
+  both Choice answers in one request. Preserve the
+  [receipt and limitations](examples/evaluation/responses-coreinfra-2026-10-18.md);
+  no claim is made for other routes or models.
+- **Next — Consumer migration and quality evaluation.** Integrate NormLab or SpecificationMetrics
   against a released API, preserving frozen task semantics, shared-state question
   grouping, historical source pins, domain consistency rules, and protocol
   revisions. A label-only answer does not establish calibration or human truth.

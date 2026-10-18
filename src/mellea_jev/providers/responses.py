@@ -118,7 +118,13 @@ def _metadata(value: object) -> str | None:
 
 
 def _redact_json(data: bytes, key: str) -> bytes:
-    """Redact literal and JSON-escaped credentials without discarding wire evidence."""
+    """Redact valid JSON evidence; omit bodies whose strings cannot be decoded."""
+    try:
+        json.loads(data, parse_constant=_constant)
+    except (ValueError, UnicodeError, RecursionError):
+        # A truncated string cannot be safely decoded/redacted by the tokenizer.
+        # Keep diagnostics explicit without exposing recoverable escaped secrets.
+        return b"[OMITTED: invalid JSON evidence]"
     forms = [key]
     while True:
         encoded = json.dumps(forms[-1], ensure_ascii=False)[1:-1]

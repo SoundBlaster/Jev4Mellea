@@ -566,6 +566,30 @@ def test_escaped_credentials_in_evidence_are_redacted_without_modifying_task():
     assert value.state["data"] == key
 
 
+@pytest.mark.parametrize("status", [200, 503])
+@pytest.mark.parametrize("key", ["fixture-key", 'fixture-"key\\end'])
+@pytest.mark.parametrize("encoding", ["json", "unicode"])
+@pytest.mark.parametrize("prefix", ['{"echo":"', "non-JSON response: "])
+def test_malformed_evidence_suppresses_recoverable_escaped_credentials(
+    status, key, encoding, prefix
+):
+    escaped = (
+        json.dumps(key)[1:-1]
+        if encoding == "json"
+        else "".join(f"\\u{ord(char):04x}" for char in key)
+    )
+    content = (prefix + escaped).encode()
+    with ResponsesChoiceProvider(
+        key,
+        model="m",
+        transport=httpx2.MockTransport(lambda _: httpx2.Response(status, content=content)),
+    ) as client:
+        with pytest.raises(ResponsesProviderError) as captured:
+            client.classify(task())
+    assert captured.value.evidence.response_body == b"[OMITTED: invalid JSON evidence]"
+    assert key not in "".join(traceback.format_exception(captured.value))
+
+
 def test_credentials_in_returned_identity_are_not_exposed():
     with ResponsesChoiceProvider(
         "fixture-key",

@@ -72,7 +72,7 @@ plugin discovery.
 
 ## Ordinary-generation categorical providers
 
-- **Implemented; awaiting review (proposal #66).** Compose native one-question
+- **Completed (PR #67, proposal #66; version 0.9.0).** Compose native one-question
   Choice providers with the categorical interface; preserve original native
   evidence and request metadata. Add an optional check-only Mellea Requirement
   bridge with caller task binding, policy, observation, and a dedicated review

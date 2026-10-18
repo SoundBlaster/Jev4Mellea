@@ -687,7 +687,7 @@ probe; schema validity does not establish semantic accuracy.
 
 #### Native categorical providers and Mellea policy
 
-**Upcoming:** compose `TypeSafeCategoricalProvider(native)` or
+**Available since 0.9.0:** compose `TypeSafeCategoricalProvider(native)` or
 `OpenAICategoricalProvider(native)` to use the same `classify(task)` interface
 with native Choice. Each wrapper supports one question per task, makes one
 request, and retains the original native evidence. Unsupported batches fail
@@ -695,6 +695,8 @@ before dispatch; the wrappers borrow the existing provider and its endpoints.
 
 `CategoricalRequirement` connects any categorical provider to Mellea using
 caller-owned task binding and acceptance policy:
+
+Install with `pip install 'mellea-jev-adapter[mellea,openai]>=0.9.0'`.
 
 ```python
 from mellea_jev import CategoricalDecision, CategoricalRequirement

@@ -1,5 +1,14 @@
 """Unofficial Mellea–Jev adapter. No paid request runs on import."""
 
+from .categorical import (
+    CapabilityMismatchError,
+    CategoricalCapabilities,
+    CategoricalEvidence,
+    CategoricalProvider,
+    CategoricalResult,
+    CategoricalTask,
+    project_choice_results,
+)
 from .client import (
     ChoiceCriteria,
     ChoiceDescription,
@@ -40,6 +49,12 @@ from .providers import (
     OpenAIProvider,
     OpenAIProviderError,
     OpenAIRefusalError,
+    ResponsesChoiceProvider,
+    ResponsesHTTPError,
+    ResponsesIncompleteError,
+    ResponsesProtocolError,
+    ResponsesProviderError,
+    ResponsesRefusalError,
     ScaleDownHTTPError,
     ScaleDownProtocolError,
     ScaleDownProvider,
@@ -63,6 +78,19 @@ from .verifier import (
 )
 
 __all__ = [
+    "CapabilityMismatchError",
+    "CategoricalCapabilities",
+    "CategoricalEvidence",
+    "CategoricalProvider",
+    "CategoricalResult",
+    "CategoricalTask",
+    "project_choice_results",
+    "ResponsesChoiceProvider",
+    "ResponsesHTTPError",
+    "ResponsesIncompleteError",
+    "ResponsesProtocolError",
+    "ResponsesProviderError",
+    "ResponsesRefusalError",
     "CoreInfraProtocol",
     "coreinfra_provider",
     "ImageInput",

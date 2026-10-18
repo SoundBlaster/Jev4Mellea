@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Add one-question `TypeSafeCategoricalProvider` and `OpenAICategoricalProvider`
+  wrappers that preserve task IDs, native Choice evidence and request metadata
+  through one explicit request. Reject unsupported batches before dispatch.
+- Add the optional `CategoricalRequirement` policy bridge with explicit task
+  binding, accept/reject/review outcomes, evaluation observation, and check-only
+  validation by default. Preserve operational errors and native score boundaries.
+- Document consumer-controlled escalation with a total call budget; keep
+  generation backends, routing, persistence and semantic quality policy outside
+  the adapter.
+
 ## 0.8.0 — 2026-10-18
 
 - Add provider-neutral categorical tasks/results and explicit native Choice

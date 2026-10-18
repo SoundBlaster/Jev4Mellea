@@ -15,6 +15,9 @@ This feature is available starting with version 0.8.0. No additional
 mandatory dependency is introduced. Importing the package does not import the
 OpenAI SDK; construction requires it but does not send a request or probe a route.
 
+For the upcoming native Choice wrappers and optional Mellea policy bridge, see
+[native categorical providers and Requirements](categorical_requirement.md).
+
 ## Contract review decisions
 
 - Reuse `ChoiceQuestion` for definitions. Keep `CategoricalTask`,

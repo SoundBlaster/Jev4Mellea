@@ -9,6 +9,13 @@ from .categorical import (
     CategoricalTask,
     project_choice_results,
 )
+from .categorical_requirement import (
+    CategoricalDecision,
+    CategoricalEvaluation,
+    CategoricalProtocolError,
+    CategoricalRequirement,
+    CategoricalReviewRequired,
+)
 from .client import (
     ChoiceCriteria,
     ChoiceDescription,
@@ -44,6 +51,7 @@ from .providers import (
     LayaAgent,
     LayaProtocolError,
     LayaProvider,
+    OpenAICategoricalProvider,
     OpenAIHTTPError,
     OpenAIProtocolError,
     OpenAIProvider,
@@ -63,6 +71,7 @@ from .providers import (
     SubQProtocolError,
     SubQProvider,
     SubQProviderError,
+    TypeSafeCategoricalProvider,
     TypeSafeProvider,
     coreinfra_provider,
 )
@@ -78,6 +87,13 @@ from .verifier import (
 )
 
 __all__ = [
+    "CategoricalDecision",
+    "CategoricalEvaluation",
+    "CategoricalProtocolError",
+    "CategoricalRequirement",
+    "CategoricalReviewRequired",
+    "OpenAICategoricalProvider",
+    "TypeSafeCategoricalProvider",
     "CapabilityMismatchError",
     "CategoricalCapabilities",
     "CategoricalEvidence",

@@ -381,6 +381,7 @@ class TypeSafeProvider:
         }
         try:
             response = self._client.system_one(
+                model=self.model,
                 state=state,
                 questions=sdk_questions,
                 response_model=_AdapterSystemOneResponse,

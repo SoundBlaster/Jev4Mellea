@@ -188,6 +188,24 @@ class OpenAIProvider:
         images: Mapping[str, ImageInput] | None = None,
     ) -> ChoiceResult:
         """Classify into the caller's string labels; reject incomplete distributions."""
+        return self._choice_with_name(
+            name=CHOICE_QUESTION_NAME,
+            state=state,
+            question=question,
+            criteria=criteria,
+            images=images,
+        )
+
+    def _choice_with_name(
+        self,
+        *,
+        name: str,
+        state: dict[str, Any],
+        question: str,
+        criteria: ChoiceCriteria,
+        images: Mapping[str, ImageInput] | None = None,
+    ) -> ChoiceResult:
+        """Share native validation with the single-question categorical wrapper."""
         normalized = normalize_choice_criteria(criteria)
         if not 2 <= len(normalized) <= 255:
             raise ValueError("OpenAI Choice requires between 2 and 255 labels.")
@@ -205,7 +223,7 @@ class OpenAIProvider:
             state=state,
             question={
                 "type": "choice",
-                "name": CHOICE_QUESTION_NAME,
+                "name": name,
                 "instructions": question,
                 "choices": choices,
             },

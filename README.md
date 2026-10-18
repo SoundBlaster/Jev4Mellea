@@ -685,6 +685,38 @@ reasoning/budget settings, safe raw evidence, native projection, capability erro
 and the one-call opt-in example. Model/Proxy support requires a separate live
 probe; schema validity does not establish semantic accuracy.
 
+#### Native categorical providers and Mellea policy
+
+**Upcoming:** compose `TypeSafeCategoricalProvider(native)` or
+`OpenAICategoricalProvider(native)` to use the same `classify(task)` interface
+with native Choice. Each wrapper supports one question per task, makes one
+request, and retains the original native evidence. Unsupported batches fail
+before dispatch; the wrappers borrow the existing provider and its endpoints.
+
+`CategoricalRequirement` connects any categorical provider to Mellea using
+caller-owned task binding and acceptance policy:
+
+```python
+from mellea_jev import CategoricalDecision, CategoricalRequirement
+
+bridge = CategoricalRequirement(
+    provider,
+    task_builder=build_task_from_context,  # Caller binds source and candidate.
+    policy=lambda result: CategoricalDecision(
+        "accept" if result.answers["kind"] == "bug" else "review",
+        "Application routing policy.",
+    ),
+    description="The candidate must satisfy the application's acceptance policy.",
+)
+requirement = bridge.as_requirement()  # check_only=True by default.
+```
+
+Accept/reject map to Mellea validation results; review raises
+`CategoricalReviewRequired`, retaining the task, result and policy decision.
+Operational failures propagate separately. Label-only results have no generated
+confidence or score. See the [contract, native/categorical comparison, and bounded
+escalation example](docs/categorical_requirement.md).
+
 ### Evaluate a provider on labeled examples
 
 For image work, the [synthetic crosswalk reference](examples/evaluation/visual/README.md)

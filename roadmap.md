@@ -72,6 +72,13 @@ plugin discovery.
 
 ## Ordinary-generation categorical providers
 
+- **Implemented; awaiting review (proposal #66).** Compose native one-question
+  Choice providers with the categorical interface; preserve original native
+  evidence and request metadata. Add an optional check-only Mellea Requirement
+  bridge with caller task binding, policy, observation, and a dedicated review
+  signal. Consumer code owns escalation, global budgets and quality evaluation.
+  See the [contract and bounded example](docs/categorical_requirement.md).
+
 - **Completed (PR #64; version 0.8.0).** Add `CategoricalTask`, `CategoricalResult`,
   and `ResponsesChoiceProvider` for single/shared-state-batch Choice generation
   with strict JSON Schema, explicit settings, safe evidence, and fail-closed

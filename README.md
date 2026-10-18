@@ -652,6 +652,39 @@ so calibrate `minimum_confidence` for the selected backend rather than copying
 a threshold from another provider. See the [Laya-MLX API and platform notes](https://github.com/mizorewww/laya-mlx)
 and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/laya_mlx/common.py).
 
+### Label-only classification with ordinary models
+
+**Upcoming after 0.7.0:** `ResponsesChoiceProvider` uses the optional OpenAI SDK
+for ordinary Responses generation with strict Structured Outputs. A single
+`CategoricalTask` can contain one or several named `ChoiceQuestion` objects over
+shared JSON state. It returns labels and available metadata, without inventing
+probabilities or confidence. Existing Decisions/native providers and Mellea
+threshold policies retain their contracts.
+
+```python
+from mellea_jev import CategoricalTask, ChoiceQuestion, ResponsesChoiceProvider
+
+# The following call sends state to the configured API and may incur charges.
+task = CategoricalTask(
+    state={"ticket": "The checkout page goes blank when I click Pay."},
+    questions={
+        "kind": ChoiceQuestion(
+            "What kind of request is this?",
+            {"bug": "Broken behavior", "feature": "New functionality", "unknown": None},
+        )
+    },
+)
+with ResponsesChoiceProvider(model="YOUR_RESPONSES_MODEL", max_output_tokens=512) as provider:
+    result = provider.classify(task)
+print(result.answers["kind"])
+```
+
+Use this implementation's checkout until a release includes it. See the
+[categorical contract and batching guide](docs/categorical.md) for exact endpoints,
+reasoning/budget settings, safe raw evidence, native projection, capability errors,
+and the one-call opt-in example. Model/Proxy support requires a separate live
+probe; schema validity does not establish semantic accuracy.
+
 ### Evaluate a provider on labeled examples
 
 For image work, the [synthetic crosswalk reference](examples/evaluation/visual/README.md)

@@ -29,8 +29,15 @@ COREINFRA_IMAGE ?=
 COREINFRA_REPORT ?=
 export COREINFRA_JEV_MODEL COREINFRA_IMAGE COREINFRA_REPORT
 
+RESPONSES_MODEL ?=
+RESPONSES_API_KEY_ENV ?= OPENAI_API_KEY
+RESPONSES_BASE_URL ?=
+RESPONSES_ENDPOINT_URL ?=
+RESPONSES_REASONING_EFFORT ?=
+export RESPONSES_MODEL RESPONSES_API_KEY_ENV RESPONSES_BASE_URL RESPONSES_ENDPOINT_URL RESPONSES_REASONING_EFFORT
+
 .DEFAULT_GOAL := help
-.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate visual-reference visual-evaluate visual-live-evaluate diff-check committed-diff-check clean
+.PHONY: help install demo lint format-check typecheck quality test check test-integration ollama-test live-test live-check responses-choice-live-check image-live-check coreinfra-live-check subq-live-check proxy-live-check openai-live-test mellea-ollama evaluate live-evaluate visual-reference visual-evaluate visual-live-evaluate diff-check committed-diff-check clean
 
 help: ## Show the available development commands
 	@printf '%s\n' \
@@ -46,6 +53,7 @@ help: ## Show the available development commands
 	  'ollama-test      Run the local Ollama repair test; Jev HTTP is mocked' \
 	  'live-test        Run explicitly enabled, potentially billable Jev smoke tests' \
 	  'live-check       Run one potentially billable check from examples/live_check.py' \
+	  'responses-choice-live-check One billable Responses call for two categorical questions' \
 	  'image-live-check Upload IMAGE for one experimental Jev image request (billable)' \
 	  'coreinfra-live-check Run 12 Hub text checks (+1 if COREINFRA_IMAGE is set; billable)' \
 	  'subq-live-check  Run one potentially billable Noul check against SubQ Decisions' \
@@ -113,6 +121,14 @@ proxy-live-check: $(INSTALL_STAMP) ## Run one potentially billable check through
 live-check: $(INSTALL_STAMP) ## Run one live Jev check using the sample input; this may incur charges
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }
 	$(PY) examples/live_check.py
+
+responses-choice-live-check: $(INSTALL_STAMP) ## Opt into one ordinary-generation Choice batch
+	@test -n "$$RESPONSES_MODEL" || { echo 'Set RESPONSES_MODEL explicitly.' >&2; exit 2; }
+	@set -- --live --model "$$RESPONSES_MODEL" --api-key-env "$$RESPONSES_API_KEY_ENV"; \
+	if [ -n "$$RESPONSES_BASE_URL" ]; then set -- "$$@" --base-url "$$RESPONSES_BASE_URL"; fi; \
+	if [ -n "$$RESPONSES_ENDPOINT_URL" ]; then set -- "$$@" --endpoint-url "$$RESPONSES_ENDPOINT_URL"; fi; \
+	if [ -n "$$RESPONSES_REASONING_EFFORT" ]; then set -- "$$@" --reasoning-effort "$$RESPONSES_REASONING_EFFORT"; fi; \
+	$(PY) examples/responses_choice.py "$$@"
 
 image-live-check: $(INSTALL_STAMP) ## Upload one prepared image for three judgments in one request
 	@test -n "$${TYPESAFE_API_KEY:-}" || { echo 'Set TYPESAFE_API_KEY first.' >&2; exit 2; }

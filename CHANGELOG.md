@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Add provider-neutral categorical tasks/results and explicit native Choice
+  projection, without invented probability/confidence fields.
+- Add optional `ResponsesChoiceProvider` for one strict-schema generation
+  request containing one or several Choice questions, explicit endpoints/model/
+  reasoning/budget settings, safe evidence, and bounded response reading.
+- Reject label-only providers before dispatch from existing probability-based
+  Mellea helpers. Preserve native results and threshold semantics.
+- Add an explicit one-call categorical example, offline transport checks, and
+  documentation; live compatibility and downstream migration remain opt-in.
+
 ## 0.7.0 — 2026-10-15
 
 - Add a bounded opt-in visual evaluation runner for the synthetic reference,

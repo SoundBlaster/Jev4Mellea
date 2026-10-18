@@ -9,6 +9,14 @@ from .openai import (
     OpenAIProviderError,
     OpenAIRefusalError,
 )
+from .responses import (
+    ResponsesChoiceProvider,
+    ResponsesHTTPError,
+    ResponsesIncompleteError,
+    ResponsesProtocolError,
+    ResponsesProviderError,
+    ResponsesRefusalError,
+)
 from .scaledown import (
     ScaleDownHTTPError,
     ScaleDownProtocolError,
@@ -19,6 +27,12 @@ from .subq import SubQHTTPError, SubQProtocolError, SubQProvider, SubQProviderEr
 from .typesafe import TypeSafeProvider
 
 __all__ = [
+    "ResponsesChoiceProvider",
+    "ResponsesHTTPError",
+    "ResponsesIncompleteError",
+    "ResponsesProtocolError",
+    "ResponsesProviderError",
+    "ResponsesRefusalError",
     "CoreInfraProtocol",
     "coreinfra_provider",
     "LayaAgent",

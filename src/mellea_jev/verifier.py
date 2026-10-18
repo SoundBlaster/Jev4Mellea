@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, Literal
 
+from .categorical import _require_primitive
 from .contracts import (
     ChoiceCriteria,
     ChoiceProvider,
@@ -103,6 +104,7 @@ class JevVerifier:
         self.reject_at = probability(reject_at)
         if not self.reject_at < 0.5 < self.accept_at:
             raise ValueError("Require 0 <= reject_at < 0.5 < accept_at <= 1.")
+        _require_primitive(client, "noul")
         self.client = client
         self.description = description
         self.reference = reference
@@ -175,6 +177,7 @@ class JevClassifier:
     ) -> None:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must be a nonempty string.")
+        _require_primitive(client, "choice")
         self.client = client
         self.question = question
         self.criteria = _choice_criteria(criteria)
@@ -276,6 +279,7 @@ class JevScorer:
     ) -> None:
         if not isinstance(question, str) or not question.strip():
             raise ValueError("question must be a nonempty string.")
+        _require_primitive(client, "score")
         self.client = client
         self.question = question
         self.criteria = _score_criteria(criteria)

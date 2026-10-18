@@ -70,6 +70,22 @@ TypeSafe wire models, while existing Jev callers keep `JevClient`. This meets
 the current portability milestone; it does not by itself establish a need for
 plugin discovery.
 
+## Ordinary-generation categorical providers
+
+- **Implemented; awaiting review.** Add `CategoricalTask`, `CategoricalResult`,
+  and `ResponsesChoiceProvider` for single/shared-state-batch Choice generation
+  with strict JSON Schema, explicit settings, safe evidence, and fail-closed
+  parsing. Keep categorical labels separate from native probabilities and
+  existing Mellea threshold requirements; project native Choice results explicitly.
+- **Next — Bounded compatibility probe.** Explicitly select a Responses model,
+  route, key locator, reasoning setting, and output budget, then run the one-call
+  example. Record observed returned identity, usage when available, and exact
+  source/configuration. Offline checks are not live compatibility evidence.
+- **Later — Consumer migration.** Integrate NormLab or SpecificationMetrics
+  against a released API, preserving frozen task semantics, shared-state question
+  grouping, historical source pins, domain consistency rules, and protocol
+  revisions. A label-only answer does not establish calibration or human truth.
+
 ## CoreInfra Hub compatibility
 
 - **Completed (PRs #57–59).** Compose existing TypeSafe/OpenAI providers

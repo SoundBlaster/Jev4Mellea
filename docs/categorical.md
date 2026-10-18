@@ -8,11 +8,10 @@ uses Decisions; the API format is never inferred from a model's name.
 Install the existing optional dependency:
 
 ```bash
-pip install 'mellea-jev-adapter[openai]'
+pip install 'mellea-jev-adapter[openai]>=0.8.0'
 ```
 
-This feature is in the implementation PR following 0.7.0, not in the published
-0.7.0 wheel. Use that PR's checkout until a release includes it. No additional
+This feature is available starting with version 0.8.0. No additional
 mandatory dependency is introduced. Importing the package does not import the
 OpenAI SDK; construction requires it but does not send a request or probe a route.
 

@@ -654,7 +654,7 @@ and [confidence implementation](https://github.com/mizorewww/laya-mlx/blob/main/
 
 ### Label-only classification with ordinary models
 
-**Upcoming after 0.7.0:** `ResponsesChoiceProvider` uses the optional OpenAI SDK
+**Available since 0.8.0:** `ResponsesChoiceProvider` uses the optional OpenAI SDK
 for ordinary Responses generation with strict Structured Outputs. A single
 `CategoricalTask` can contain one or several named `ChoiceQuestion` objects over
 shared JSON state. It returns labels and available metadata, without inventing
@@ -679,7 +679,7 @@ with ResponsesChoiceProvider(model="YOUR_RESPONSES_MODEL", max_output_tokens=512
 print(result.answers["kind"])
 ```
 
-Use this implementation's checkout until a release includes it. See the
+Install with `pip install 'mellea-jev-adapter[openai]>=0.8.0'`. See the
 [categorical contract and batching guide](docs/categorical.md) for exact endpoints,
 reasoning/budget settings, safe raw evidence, native projection, capability errors,
 and the one-call opt-in example. Model/Proxy support requires a separate live
